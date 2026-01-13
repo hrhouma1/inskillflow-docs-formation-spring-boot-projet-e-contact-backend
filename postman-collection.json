@@ -1,0 +1,153 @@
+{
+  "info": {
+    "name": "Contact API",
+    "description": "Collection Postman pour tester l'API Contact",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Contact (Public)",
+      "item": [
+        {
+          "name": "Soumettre formulaire",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/contact",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fullName\": \"Marie Tremblay\",\n    \"company\": \"ABC Inc.\",\n    \"email\": \"marie@example.com\",\n    \"phone\": \"514-555-1234\",\n    \"requestType\": \"INFO\",\n    \"message\": \"Bonjour, je voudrais avoir plus d'informations sur vos services.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentification",
+      "item": [
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", jsonData.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"admin123\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Leads (Admin)",
+      "item": [
+        {
+          "name": "Liste des leads",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/leads",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Détail lead",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/leads/1",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Changer statut",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/admin/leads/1/status",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"CONTACTED\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Statistiques",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/leads/stats",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Supprimer lead",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/leads/1",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+

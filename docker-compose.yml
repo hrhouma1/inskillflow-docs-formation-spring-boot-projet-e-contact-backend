@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: contact-db
+    environment:
+      POSTGRES_DB: contactdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MailHog pour tester les emails
+  mailhog:
+    image: mailhog/mailhog
+    container_name: contact-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    
+  # Application Spring Boot
+  api:
+    build: .
+    container_name: contact-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: contactdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      ADMIN_EMAIL: admin@example.com
+      JWT_SECRET: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0yNTY=
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+volumes:
+  postgres_data:
+

@@ -1,0 +1,168 @@
+### ============================================
+### CONTACT API - Tests des endpoints
+### Utiliser avec VS Code + extension "REST Client"
+### ============================================
+
+### Variables
+@baseUrl = http://localhost:8080
+@token = {{login.response.body.token}}
+
+### ============================================
+### 1. FORMULAIRE DE CONTACT (Public)
+### ============================================
+
+### Soumettre un formulaire - Demande d'info
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+    "fullName": "Marie Tremblay",
+    "company": "ABC Inc.",
+    "email": "marie@example.com",
+    "phone": "514-555-1234",
+    "requestType": "INFO",
+    "message": "Bonjour, je voudrais avoir plus d'informations sur vos services."
+}
+
+### Soumettre un formulaire - Demande de devis
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+    "fullName": "Jean Dupont",
+    "company": "XYZ Corp",
+    "email": "jean@example.com",
+    "phone": "438-555-5678",
+    "requestType": "QUOTE",
+    "message": "Je souhaite obtenir un devis pour une équipe de 20 personnes. Notre budget est de 5000$ par mois."
+}
+
+### Soumettre un formulaire - Support technique
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+    "fullName": "Sophie Martin",
+    "email": "sophie@example.com",
+    "requestType": "SUPPORT",
+    "message": "J'ai un problème avec mon compte. Je n'arrive pas à me connecter depuis ce matin."
+}
+
+### Test validation - Email invalide (doit retourner 400)
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+    "fullName": "Test User",
+    "email": "email-invalide",
+    "requestType": "INFO",
+    "message": "Test message"
+}
+
+### Test validation - Message trop court (doit retourner 400)
+POST {{baseUrl}}/api/contact
+Content-Type: application/json
+
+{
+    "fullName": "Test User",
+    "email": "test@example.com",
+    "requestType": "INFO",
+    "message": "Court"
+}
+
+### ============================================
+### 2. AUTHENTIFICATION
+### ============================================
+
+### Login Admin (par défaut)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@example.com",
+    "password": "admin123"
+}
+
+### Test Login avec mauvais mot de passe (doit retourner 401)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@example.com",
+    "password": "mauvais_password"
+}
+
+### ============================================
+### 3. GESTION DES LEADS (Admin - JWT requis)
+### ============================================
+
+### Liste tous les leads
+GET {{baseUrl}}/api/admin/leads
+Authorization: Bearer {{token}}
+
+### Liste avec pagination
+GET {{baseUrl}}/api/admin/leads?page=0&size=5
+Authorization: Bearer {{token}}
+
+### Filtrer par statut - Nouveaux
+GET {{baseUrl}}/api/admin/leads?status=NEW
+Authorization: Bearer {{token}}
+
+### Filtrer par statut - Contactés
+GET {{baseUrl}}/api/admin/leads?status=CONTACTED
+Authorization: Bearer {{token}}
+
+### Détail d'un lead (remplacer 1 par l'ID)
+GET {{baseUrl}}/api/admin/leads/1
+Authorization: Bearer {{token}}
+
+### Changer statut -> CONTACTED
+PUT {{baseUrl}}/api/admin/leads/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "status": "CONTACTED"
+}
+
+### Changer statut -> CONVERTED
+PUT {{baseUrl}}/api/admin/leads/1/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "status": "CONVERTED"
+}
+
+### Changer statut -> LOST
+PUT {{baseUrl}}/api/admin/leads/2/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "status": "LOST"
+}
+
+### Supprimer un lead
+DELETE {{baseUrl}}/api/admin/leads/3
+Authorization: Bearer {{token}}
+
+### ============================================
+### 4. STATISTIQUES
+### ============================================
+
+### Obtenir les statistiques du pipeline
+GET {{baseUrl}}/api/admin/leads/stats
+Authorization: Bearer {{token}}
+
+### ============================================
+### 5. TESTS SANS TOKEN (doivent retourner 401/403)
+### ============================================
+
+### Accès admin sans token (doit retourner 401)
+GET {{baseUrl}}/api/admin/leads
+
+### Accès stats sans token (doit retourner 401)
+GET {{baseUrl}}/api/admin/leads/stats
+
