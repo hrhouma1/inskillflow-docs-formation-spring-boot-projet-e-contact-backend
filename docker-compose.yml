@@ -42,6 +42,7 @@ services:
       DB_PASSWORD: postgres
       MAIL_HOST: mailhog
       MAIL_PORT: 1025
+      MAIL_USER: noreply@example.com
       ADMIN_EMAIL: admin@example.com
       JWT_SECRET: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0yNTY=
       JWT_EXPIRATION: 86400000
