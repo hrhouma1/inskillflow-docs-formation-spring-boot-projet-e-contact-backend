@@ -47,21 +47,21 @@ spring:
       ddl-auto: update
     show-sql: false
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USER}
-    password: ${MAIL_PASSWORD}
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USER:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
-          auth: true
+          auth: ${MAIL_AUTH:false}
           starttls:
-            enable: true
-            required: true
+            enable: ${MAIL_STARTTLS:false}
+            required: false
 
 app:
   admin-email: ${ADMIN_EMAIL:admin@example.com}
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0yNTY=}
     expiration: ${JWT_EXPIRATION:86400000}
 
