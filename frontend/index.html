@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulaire de Contact</title>
+    <style>
+        /* ============================================
+           VARIABLES & RESET
+           ============================================ */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* ============================================
+           CONTAINER
+           ============================================ */
+        .container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--text);
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* ============================================
+           FORM
+           ============================================ */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: var(--text);
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        label .required {
+            color: var(--error);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        /* ============================================
+           BUTTON
+           ============================================ */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background: var(--text-light);
+            cursor: not-allowed;
+        }
+
+        /* ============================================
+           MESSAGES
+           ============================================ */
+        .message {
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .message.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           LOADING SPINNER
+           ============================================ */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 480px) {
+            .container {
+                padding: 24px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Contactez-nous</h1>
+            <p>Remplissez le formulaire ci-dessous, nous vous répondrons rapidement.</p>
+        </div>
+
+        <div id="successMessage" class="message success">
+            ✅ Merci ! Votre message a été envoyé avec succès.
+        </div>
+
+        <div id="errorMessage" class="message error">
+            ❌ Une erreur est survenue. Veuillez réessayer.
+        </div>
+
+        <form id="contactForm">
+            <div class="form-group">
+                <label for="fullName">
+                    Nom complet <span class="required">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="fullName" 
+                    name="fullName" 
+                    placeholder="Jean Dupont"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="company">Entreprise</label>
+                <input 
+                    type="text" 
+                    id="company" 
+                    name="company" 
+                    placeholder="Mon Entreprise Inc."
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email">
+                    Email <span class="required">*</span>
+                </label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="jean.dupont@email.com"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Téléphone</label>
+                <input 
+                    type="tel" 
+                    id="phone" 
+                    name="phone" 
+                    placeholder="514-555-1234"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="requestType">
+                    Type de demande <span class="required">*</span>
+                </label>
+                <select id="requestType" name="requestType" required>
+                    <option value="">-- Sélectionnez --</option>
+                    <option value="INFO">Demande d'information</option>
+                    <option value="QUOTE">Demande de devis</option>
+                    <option value="SUPPORT">Support technique</option>
+                    <option value="PARTNERSHIP">Partenariat</option>
+                    <option value="OTHER">Autre</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="message">
+                    Message <span class="required">*</span>
+                </label>
+                <textarea 
+                    id="message" 
+                    name="message" 
+                    placeholder="Décrivez votre demande..."
+                    required
+                ></textarea>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">
+                Envoyer le message
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION - MODIFIEZ CETTE URL
+        // ============================================
+        
+        // Pour Docker local :
+        const API_URL = 'http://localhost:8080/api/contact';
+        
+        // Pour Codespaces, décommentez et modifiez :
+        // const API_URL = 'https://votre-codespace-8080.app.github.dev/api/contact';
+
+        // ============================================
+        // DOM ELEMENTS
+        // ============================================
+        const form = document.getElementById('contactForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // ============================================
+        // FORM SUBMISSION
+        // ============================================
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide messages
+            successMessage.classList.remove('show');
+            errorMessage.classList.remove('show');
+            
+            // Show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Envoi en cours...';
+            
+            // Get form data
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                company: document.getElementById('company').value || null,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value || null,
+                requestType: document.getElementById('requestType').value,
+                message: document.getElementById('message').value
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    // Success
+                    successMessage.classList.add('show');
+                    form.reset();
+                } else {
+                    // API error
+                    const error = await response.json();
+                    console.error('API Error:', error);
+                    errorMessage.textContent = '❌ ' + (error.message || 'Une erreur est survenue.');
+                    errorMessage.classList.add('show');
+                }
+            } catch (error) {
+                // Network error
+                console.error('Network Error:', error);
+                errorMessage.textContent = '❌ Impossible de contacter le serveur. Vérifiez que l\'API est démarrée.';
+                errorMessage.classList.add('show');
+            } finally {
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Envoyer le message';
+            }
+        });
+    </script>
+</body>
+</html>
+
