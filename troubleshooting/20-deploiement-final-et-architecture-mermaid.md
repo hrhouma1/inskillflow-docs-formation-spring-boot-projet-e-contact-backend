@@ -1,59 +1,59 @@
-# 20 - Déploiement Final + Diagrammes Architecture (Mermaid)
+# 20 - Deploiement Final + Diagrammes Architecture (Mermaid)
 
-## 🎯 État du projet
+## Etat du projet
 
-### ✅ Ce qui est FAIT
+### Ce qui est FAIT
 
 | Composant | Status | Description |
 |-----------|--------|-------------|
-| Backend Spring Boot | ✅ | API REST complète |
-| Authentication JWT | ✅ | Login/Register sécurisé |
-| Base de données | ✅ | PostgreSQL + H2 dev |
-| Emails | ✅ | MailHog (dev) + Gmail (prod) |
-| Swagger UI | ✅ | Documentation API |
-| Frontend HTML | ✅ | Formulaire de contact |
-| Docker Compose Dev | ✅ | `docker-compose.yml` |
-| Docker Compose Gmail | ✅ | `docker-compose.gmail.yml` |
-| Docker Compose Full | ✅ | `docker-compose.full.yml` |
-| Nginx Config | ✅ | Reverse proxy |
-| Documentation | ✅ | 20 guides troubleshooting |
+| Backend Spring Boot | OK | API REST complete |
+| Authentication JWT | OK | Login/Register securise |
+| Base de donnees | OK | PostgreSQL + H2 dev |
+| Emails | OK | MailHog (dev) + Gmail (prod) |
+| Swagger UI | OK | Documentation API |
+| Frontend HTML | OK | Formulaire de contact |
+| Docker Compose Dev | OK | `docker-compose.yml` |
+| Docker Compose Gmail | OK | `docker-compose.gmail.yml` |
+| Docker Compose Full | OK | `docker-compose.full.yml` |
+| Nginx Config | OK | Reverse proxy |
+| Documentation | OK | 20 guides troubleshooting |
 
-### 📋 Ce qu'il RESTE pour production
+### Ce qu'il RESTE pour production
 
-| Tâche | Priorité | Difficulté |
+| Tache | Priorite | Difficulte |
 |-------|----------|------------|
-| Acheter un VPS | 🔴 Haute | Facile |
-| Configurer domaine | 🔴 Haute | Facile |
-| Ajouter HTTPS (SSL) | 🔴 Haute | Moyen |
-| Variables d'environnement prod | 🔴 Haute | Facile |
-| Backup base de données | 🟡 Moyenne | Moyen |
-| Monitoring/Logs | 🟢 Basse | Moyen |
+| Acheter un VPS | Haute | Facile |
+| Configurer domaine | Haute | Facile |
+| Ajouter HTTPS (SSL) | Haute | Moyen |
+| Variables d'environnement prod | Haute | Facile |
+| Backup base de donnees | Moyenne | Moyen |
+| Monitoring/Logs | Basse | Moyen |
 
 ---
 
 # DIAGRAMMES MERMAID
 
-## 📊 1. Architecture Globale
+## 1. Architecture Globale
 
 ```mermaid
 graph TB
-    subgraph "🌐 Internet"
-        USER[👤 Utilisateur]
-        ADMIN[👨‍💼 Admin]
+    subgraph "Internet"
+        USER[Utilisateur]
+        ADMIN[Admin]
     end
 
-    subgraph "🖥️ VPS / Serveur"
-        subgraph "🐳 Docker"
-            NGINX[🔀 Nginx<br/>Port 80/443]
-            API[☕ Spring Boot<br/>Port 8080]
-            DB[(🐘 PostgreSQL<br/>Port 5432)]
-            MAIL[📧 MailHog<br/>Port 8025]
+    subgraph "VPS / Serveur"
+        subgraph "Docker"
+            NGINX[Nginx<br/>Port 80/443]
+            API[Spring Boot<br/>Port 8080]
+            DB[(PostgreSQL<br/>Port 5432)]
+            MAIL[MailHog<br/>Port 8025]
         end
     end
 
-    subgraph "🌍 Services Externes"
-        GMAIL[📬 Gmail SMTP]
-        DNS[🔗 DNS/Domaine]
+    subgraph "Services Externes"
+        GMAIL[Gmail SMTP]
+        DNS[DNS/Domaine]
     end
 
     USER -->|HTTPS| DNS
@@ -74,23 +74,23 @@ graph TB
 
 ---
 
-## 📊 2. Flux de Soumission de Contact
+## 2. Flux de Soumission de Contact
 
 ```mermaid
 sequenceDiagram
-    participant U as 👤 Utilisateur
-    participant F as 🖥️ Frontend
-    participant N as 🔀 Nginx
-    participant A as ☕ API
-    participant D as 🐘 PostgreSQL
-    participant M as 📧 Email
+    participant U as Utilisateur
+    participant F as Frontend
+    participant N as Nginx
+    participant A as API
+    participant D as PostgreSQL
+    participant M as Email
 
     U->>F: Remplit le formulaire
     F->>N: POST /api/contact
     N->>A: Proxy vers API
-    A->>A: Validation des données
+    A->>A: Validation des donnees
     A->>D: INSERT INTO leads
-    D-->>A: Lead créé (id=1)
+    D-->>A: Lead cree (id=1)
     
     par Envoi emails async
         A->>M: Email notification admin
@@ -99,31 +99,31 @@ sequenceDiagram
     
     A-->>N: 200 OK + Lead JSON
     N-->>F: Response
-    F-->>U: ✅ Message envoyé !
+    F-->>U: Message envoye
 ```
 
 ---
 
-## 📊 3. Flux d'Authentification Admin
+## 3. Flux d'Authentification Admin
 
 ```mermaid
 sequenceDiagram
-    participant A as 👨‍💼 Admin
-    participant F as 🖥️ Frontend
-    participant API as ☕ API
-    participant DB as 🐘 PostgreSQL
+    participant A as Admin
+    participant F as Frontend
+    participant API as API
+    participant DB as PostgreSQL
 
     A->>F: Email + Password
     F->>API: POST /api/auth/login
     API->>DB: SELECT * FROM users WHERE email=?
-    DB-->>API: User trouvé
-    API->>API: Vérifier password (BCrypt)
-    API->>API: Générer JWT Token
+    DB-->>API: User trouve
+    API->>API: Verifier password (BCrypt)
+    API->>API: Generer JWT Token
     API-->>F: 200 OK + JWT Token
     F->>F: Stocker token (localStorage)
-    F-->>A: ✅ Connecté !
+    F-->>A: Connecte
 
-    Note over A,DB: Requêtes suivantes
+    Note over A,DB: Requetes suivantes
 
     A->>F: Voir les leads
     F->>API: GET /api/admin/leads<br/>Header: Authorization: Bearer JWT
@@ -131,21 +131,21 @@ sequenceDiagram
     API->>DB: SELECT * FROM leads
     DB-->>API: Liste des leads
     API-->>F: 200 OK + Leads JSON
-    F-->>A: 📋 Afficher leads
+    F-->>A: Afficher leads
 ```
 
 ---
 
-## 📊 4. Architecture Docker Compose
+## 4. Architecture Docker Compose
 
 ```mermaid
 graph LR
     subgraph "docker-compose.full.yml"
         subgraph "Network: contact-network"
-            F[📄 Frontend<br/>nginx:alpine<br/>:80]
-            A[☕ API<br/>spring-boot<br/>:8080]
-            D[(🐘 PostgreSQL<br/>postgres:15<br/>:5432)]
-            M[📧 MailHog<br/>mailhog<br/>:8025]
+            F[Frontend<br/>nginx:alpine<br/>:80]
+            A[API<br/>spring-boot<br/>:8080]
+            D[(PostgreSQL<br/>postgres:15<br/>:5432)]
+            M[MailHog<br/>mailhog<br/>:8025]
         end
     end
 
@@ -161,22 +161,22 @@ graph LR
 
 ---
 
-## 📊 5. Structure des Fichiers Docker
+## 5. Structure des Fichiers Docker
 
 ```mermaid
 graph TD
-    subgraph "📁 Projet"
+    subgraph "Projet"
         DC1[docker-compose.yml<br/>Dev + MailHog]
         DC2[docker-compose.gmail.yml<br/>Test Gmail]
         DC3[docker-compose.full.yml<br/>Production]
         NG[nginx.conf<br/>Reverse Proxy]
         DF[Dockerfile<br/>Build Spring Boot]
         
-        subgraph "📁 frontend/"
+        subgraph "frontend/"
             IDX[index.html]
         end
         
-        subgraph "📁 src/"
+        subgraph "src/"
             JAVA[Code Java]
         end
     end
@@ -195,7 +195,7 @@ graph TD
 
 ---
 
-## 📊 6. Modèle de Données
+## 6. Modele de Donnees
 
 ```mermaid
 erDiagram
@@ -223,52 +223,52 @@ erDiagram
         timestamp updated_at
     }
 
-    USERS ||--o{ LEADS : "gère"
+    USERS ||--o{ LEADS : "gere"
 ```
 
 ---
 
-## 📊 7. États d'un Lead
+## 7. Etats d'un Lead
 
 ```mermaid
 stateDiagram-v2
     [*] --> NEW: Formulaire soumis
     NEW --> CONTACTED: Admin contacte
-    CONTACTED --> QUALIFIED: Lead intéressé
-    CONTACTED --> LOST: Pas intéressé
+    CONTACTED --> QUALIFIED: Lead interesse
+    CONTACTED --> LOST: Pas interesse
     QUALIFIED --> CONVERTED: Vente conclue
     QUALIFIED --> LOST: Abandon
     CONVERTED --> [*]
     LOST --> [*]
 
-    NEW: 🆕 Nouveau
-    CONTACTED: 📞 Contacté
-    QUALIFIED: ✅ Qualifié
-    CONVERTED: 🎉 Converti
-    LOST: ❌ Perdu
+    NEW: Nouveau
+    CONTACTED: Contacte
+    QUALIFIED: Qualifie
+    CONVERTED: Converti
+    LOST: Perdu
 ```
 
 ---
 
-## 📊 8. Pipeline de Déploiement
+## 8. Pipeline de Deploiement
 
 ```mermaid
 graph LR
-    subgraph "💻 Local/Codespaces"
-        DEV[👨‍💻 Développement]
-        TEST[🧪 Tests]
-        COMMIT[📝 Git Commit]
+    subgraph "Local/Codespaces"
+        DEV[Developpement]
+        TEST[Tests]
+        COMMIT[Git Commit]
     end
 
-    subgraph "☁️ GitHub"
-        REPO[📦 Repository]
+    subgraph "GitHub"
+        REPO[Repository]
     end
 
-    subgraph "🖥️ VPS Production"
-        PULL[📥 Git Pull]
-        BUILD[🔨 Docker Build]
-        DEPLOY[🚀 Docker Up]
-        LIVE[🌐 Site Live !]
+    subgraph "VPS Production"
+        PULL[Git Pull]
+        BUILD[Docker Build]
+        DEPLOY[Docker Up]
+        LIVE[Site Live]
     end
 
     DEV --> TEST
@@ -285,25 +285,25 @@ graph LR
 
 ---
 
-# GUIDE DE DÉPLOIEMENT FINAL
+# GUIDE DE DEPLOIEMENT FINAL
 
-## 📋 Étape 1 : Choisir un VPS
+## Etape 1 : Choisir un VPS
 
-### Options recommandées
+### Options recommandees
 
-| Fournisseur | Prix/mois | RAM | CPU | Région |
+| Fournisseur | Prix/mois | RAM | CPU | Region |
 |-------------|-----------|-----|-----|--------|
 | **DigitalOcean** | 6$ | 1GB | 1 | Toronto/NYC |
 | **Vultr** | 6$ | 1GB | 1 | Toronto |
 | **Linode** | 5$ | 1GB | 1 | Toronto |
 | **Hetzner** | 4€ | 2GB | 2 | Europe |
-| **OVH** | 3.50€ | 2GB | 1 | Montréal |
+| **OVH** | 3.50€ | 2GB | 1 | Montreal |
 
 ### Recommandation : **DigitalOcean** ou **Hetzner**
 
 ---
 
-## 📋 Étape 2 : Configurer le VPS
+## Etape 2 : Configurer le VPS
 
 ### 2.1 Se connecter au VPS
 
@@ -311,7 +311,7 @@ graph LR
 ssh root@VOTRE_IP_VPS
 ```
 
-### 2.2 Mettre à jour le système
+### 2.2 Mettre a jour le systeme
 
 ```bash
 apt update && apt upgrade -y
@@ -327,7 +327,7 @@ sh get-docker.sh
 # Installation Docker Compose
 apt install docker-compose-plugin -y
 
-# Vérifier
+# Verifier
 docker --version
 docker compose version
 ```
@@ -340,10 +340,10 @@ apt install git -y
 
 ---
 
-## 📋 Étape 3 : Cloner le projet
+## Etape 3 : Cloner le projet
 
 ```bash
-# Créer un dossier
+# Creer un dossier
 mkdir -p /opt/apps
 cd /opt/apps
 
@@ -354,9 +354,9 @@ cd projet-e-contact-backend
 
 ---
 
-## 📋 Étape 4 : Configurer les variables d'environnement
+## Etape 4 : Configurer les variables d'environnement
 
-### 4.1 Créer le fichier .env
+### 4.1 Creer le fichier .env
 
 ```bash
 nano .env
@@ -365,7 +365,7 @@ nano .env
 ### 4.2 Contenu du fichier .env
 
 ```env
-# Base de données
+# Base de donnees
 DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=contactdb
@@ -382,12 +382,12 @@ MAIL_AUTH=true
 # Admin
 ADMIN_EMAIL=votre-email@gmail.com
 
-# JWT (générez une clé unique !)
+# JWT (generez une cle unique !)
 JWT_SECRET=VOTRE_CLE_SECRETE_TRES_LONGUE_ET_UNIQUE_BASE64
 JWT_EXPIRATION=86400000
 ```
 
-### 4.3 Générer une clé JWT sécurisée
+### 4.3 Generer une cle JWT securisee
 
 ```bash
 openssl rand -base64 64 | tr -d '\n'
@@ -395,7 +395,7 @@ openssl rand -base64 64 | tr -d '\n'
 
 ---
 
-## 📋 Étape 5 : Créer docker-compose.prod.yml
+## Etape 5 : Creer docker-compose.prod.yml
 
 ```bash
 nano docker-compose.prod.yml
@@ -458,22 +458,22 @@ volumes:
 
 ---
 
-## 📋 Étape 6 : Lancer en production
+## Etape 6 : Lancer en production
 
 ```bash
 # Build et lancement
 docker compose -f docker-compose.prod.yml up --build -d
 
-# Vérifier les logs
+# Verifier les logs
 docker compose -f docker-compose.prod.yml logs -f
 
-# Vérifier les containers
+# Verifier les containers
 docker ps
 ```
 
 ---
 
-## 📋 Étape 7 : Configurer un domaine (optionnel)
+## Etape 7 : Configurer un domaine (optionnel)
 
 ### 7.1 Acheter un domaine
 
@@ -490,7 +490,7 @@ docker ps
 
 ---
 
-## 📋 Étape 8 : Ajouter HTTPS avec Let's Encrypt
+## Etape 8 : Ajouter HTTPS avec Let's Encrypt
 
 ### 8.1 Installer Certbot
 
@@ -510,14 +510,14 @@ certbot --nginx -d votredomaine.com -d www.votredomaine.com
 # Test du renouvellement
 certbot renew --dry-run
 
-# Cron automatique (déjà configuré par Certbot)
+# Cron automatique (deja configure par Certbot)
 ```
 
 ---
 
-## 📋 Étape 9 : Commandes de maintenance
+## Etape 9 : Commandes de maintenance
 
-### Mise à jour du code
+### Mise a jour du code
 
 ```bash
 cd /opt/apps/projet-e-contact-backend
@@ -531,21 +531,21 @@ docker compose -f docker-compose.prod.yml up --build -d
 # Tous les services
 docker compose -f docker-compose.prod.yml logs -f
 
-# Un service spécifique
+# Un service specifique
 docker compose -f docker-compose.prod.yml logs -f api
 ```
 
-### Backup de la base de données
+### Backup de la base de donnees
 
 ```bash
-# Créer un backup
+# Creer un backup
 docker exec contact-db pg_dump -U postgres contactdb > backup_$(date +%Y%m%d).sql
 
 # Restaurer un backup
 docker exec -i contact-db psql -U postgres contactdb < backup_20260120.sql
 ```
 
-### Redémarrer les services
+### Redemarrer les services
 
 ```bash
 docker compose -f docker-compose.prod.yml restart
@@ -557,34 +557,34 @@ docker compose -f docker-compose.prod.yml restart
 
 ```mermaid
 graph TB
-    subgraph "🌐 Internet"
-        U1[👤 Visiteur]
-        U2[👨‍💼 Admin]
+    subgraph "Internet"
+        U1[Visiteur]
+        U2[Admin]
     end
 
-    subgraph "☁️ Cloudflare/DNS"
-        DNS[🔗 votredomaine.com]
-        SSL[🔒 SSL/HTTPS]
+    subgraph "Cloudflare/DNS"
+        DNS[votredomaine.com]
+        SSL[SSL/HTTPS]
     end
 
-    subgraph "🖥️ VPS DigitalOcean"
-        subgraph "🐳 Docker"
-            NG[🔀 Nginx<br/>:80/:443]
+    subgraph "VPS DigitalOcean"
+        subgraph "Docker"
+            NG[Nginx<br/>:80/:443]
             
             subgraph "Application"
-                FE[📄 Frontend<br/>HTML/CSS/JS]
-                API[☕ Spring Boot<br/>:8080]
+                FE[Frontend<br/>HTML/CSS/JS]
+                API[Spring Boot<br/>:8080]
             end
             
             subgraph "Data"
-                DB[(🐘 PostgreSQL<br/>:5432)]
-                VOL[💾 Volume<br/>persistant]
+                DB[(PostgreSQL<br/>:5432)]
+                VOL[Volume<br/>persistant]
             end
         end
     end
 
-    subgraph "📬 Email"
-        GMAIL[📧 Gmail SMTP]
+    subgraph "Email"
+        GMAIL[Gmail SMTP]
     end
 
     U1 & U2 -->|HTTPS| DNS
@@ -595,7 +595,7 @@ graph TB
     API -->|JDBC| DB
     DB -->|persist| VOL
     API -->|SMTP| GMAIL
-    GMAIL -->|📨| U1
+    GMAIL -->|email| U1
 
     style NG fill:#4CAF50,color:#fff
     style API fill:#FF9800,color:#fff
@@ -606,38 +606,37 @@ graph TB
 
 ---
 
-## ✅ CHECKLIST FINALE
+## CHECKLIST FINALE
 
-### Avant déploiement
-- [ ] Code testé sur Codespaces
+### Avant deploiement
+- [ ] Code teste sur Codespaces
 - [ ] Emails fonctionnent (MailHog ou Gmail)
-- [ ] Frontend testé
-- [ ] Variables d'environnement définies
+- [ ] Frontend teste
+- [ ] Variables d'environnement definies
 
-### Déploiement
-- [ ] VPS acheté et configuré
-- [ ] Docker installé
-- [ ] Projet cloné
-- [ ] `.env` créé avec vraies valeurs
+### Deploiement
+- [ ] VPS achete et configure
+- [ ] Docker installe
+- [ ] Projet clone
+- [ ] `.env` cree avec vraies valeurs
 - [ ] `docker compose up` fonctionne
 - [ ] Site accessible via IP
 
 ### Production (optionnel)
-- [ ] Domaine acheté
-- [ ] DNS configuré
-- [ ] HTTPS activé (Let's Encrypt)
-- [ ] Backups automatisés
-- [ ] Monitoring configuré
+- [ ] Domaine achete
+- [ ] DNS configure
+- [ ] HTTPS active (Let's Encrypt)
+- [ ] Backups automatises
+- [ ] Monitoring configure
 
 ---
 
-## 🎉 Félicitations !
+## Resume
 
 Votre application est maintenant :
-- ✅ **Développée** (Spring Boot + Frontend)
-- ✅ **Testée** (Codespaces + MailHog)
-- ✅ **Documentée** (20 guides)
-- ✅ **Prête pour la production** (Docker Compose)
+- **Developpee** (Spring Boot + Frontend)
+- **Testee** (Codespaces + MailHog)
+- **Documentee** (20 guides)
+- **Prete pour la production** (Docker Compose)
 
-Il ne reste qu'à **déployer sur un VPS** quand vous êtes prêt ! 🚀
-
+Il ne reste qu'a **deployer sur un VPS** quand vous etes pret.
