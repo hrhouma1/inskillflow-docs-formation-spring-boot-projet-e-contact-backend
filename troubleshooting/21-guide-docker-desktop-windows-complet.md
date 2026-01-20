@@ -1,54 +1,54 @@
-# 21 - Guide Ultra Detaille : Docker Desktop sur Windows
+# 21 - Guide Ultra Détaillé : Docker Desktop sur Windows
 
-## Table des matieres
+## Table des matières
 
 1. [Installation de Docker Desktop](#partie-1--installation-de-docker-desktop)
 2. [Interface Docker Desktop](#partie-2--interface-docker-desktop)
 3. [Terminal et Commandes Linux](#partie-3--terminal-et-commandes-linux)
 4. [Lancer le Projet](#partie-4--lancer-le-projet)
-5. [Gerer les Containers](#partie-5--gerer-les-containers)
-6. [Gerer les Images](#partie-6--gerer-les-images)
-7. [Acceder a la Base de Donnees](#partie-7--acceder-a-la-base-de-donnees)
-8. [Gerer les Volumes](#partie-8--gerer-les-volumes)
+5. [Gérer les Containers](#partie-5--gérer-les-containers)
+6. [Gérer les Images](#partie-6--gérer-les-images)
+7. [Accéder à la Base de Données](#partie-7--accéder-à-la-base-de-données)
+8. [Gérer les Volumes](#partie-8--gérer-les-volumes)
 9. [Voir les Logs](#partie-9--voir-les-logs)
-10. [Resoudre les Problemes](#partie-10--resoudre-les-problemes)
+10. [Résoudre les Problèmes](#partie-10--résoudre-les-problèmes)
 
 ---
 
 # PARTIE 1 : INSTALLATION DE DOCKER DESKTOP
 
-## Etape 1.1 : Telecharger Docker Desktop
+## Étape 1.1 : Télécharger Docker Desktop
 
 1. Ouvrez votre navigateur
 2. Allez sur : https://www.docker.com/products/docker-desktop/
 3. Cliquez sur **Download for Windows**
-4. Le fichier `Docker Desktop Installer.exe` se telecharge
+4. Le fichier `Docker Desktop Installer.exe` se télécharge
 
-## Etape 1.2 : Installer Docker Desktop
+## Étape 1.2 : Installer Docker Desktop
 
 1. Double-cliquez sur `Docker Desktop Installer.exe`
-2. Cochez **Use WSL 2 instead of Hyper-V** (recommande)
+2. Cochez **Use WSL 2 instead of Hyper-V** (recommandé)
 3. Cochez **Add shortcut to desktop**
 4. Cliquez sur **Ok**
 5. Attendez l'installation (5-10 minutes)
 6. Cliquez sur **Close and restart**
 
-## Etape 1.3 : Premier lancement
+## Étape 1.3 : Premier lancement
 
-1. Apres le redemarrage, Docker Desktop se lance automatiquement
+1. Après le redémarrage, Docker Desktop se lance automatiquement
 2. Acceptez les conditions d'utilisation
-3. Vous pouvez **Skip** la creation de compte (optionnel)
-4. Attendez que Docker demarre (icone verte dans la barre des taches)
+3. Vous pouvez **Skip** la création de compte (optionnel)
+4. Attendez que Docker démarre (icône verte dans la barre des tâches)
 
-## Etape 1.4 : Verifier l'installation
+## Étape 1.4 : Vérifier l'installation
 
-Ouvrez PowerShell (clic droit sur Demarrer > Terminal) et tapez :
+Ouvrez PowerShell (clic droit sur Démarrer > Terminal) et tapez :
 
 ```powershell
 docker --version
 ```
 
-Resultat attendu :
+Résultat attendu :
 ```
 Docker version 24.0.7, build afdd53b
 ```
@@ -57,7 +57,7 @@ Docker version 24.0.7, build afdd53b
 docker compose version
 ```
 
-Resultat attendu :
+Résultat attendu :
 ```
 Docker Compose version v2.23.3-desktop.2
 ```
@@ -66,20 +66,20 @@ Docker Compose version v2.23.3-desktop.2
 
 # PARTIE 2 : INTERFACE DOCKER DESKTOP
 
-## Etape 2.1 : Ouvrir Docker Desktop
+## Étape 2.1 : Ouvrir Docker Desktop
 
 ### Option A : Depuis le bureau
-- Double-cliquez sur l'icone **Docker Desktop** sur le bureau
+- Double-cliquez sur l'icône **Docker Desktop** sur le bureau
 
-### Option B : Depuis la barre des taches
-- Cliquez sur la fleche en bas a droite (zone de notification)
-- Cliquez sur l'icone de la baleine Docker
+### Option B : Depuis la barre des tâches
+- Cliquez sur la flèche en bas à droite (zone de notification)
+- Cliquez sur l'icône de la baleine Docker
 
-### Option C : Depuis le menu Demarrer
+### Option C : Depuis le menu Démarrer
 - Tapez "Docker" dans la recherche Windows
 - Cliquez sur **Docker Desktop**
 
-## Etape 2.2 : Comprendre l'interface
+## Étape 2.2 : Comprendre l'interface
 
 ```
 +------------------------------------------------------------------+
@@ -106,35 +106,35 @@ Docker Compose version v2.23.3-desktop.2
 
 | Onglet | Description |
 |--------|-------------|
-| **Containers** | Liste des containers en cours/arretes |
-| **Images** | Liste des images Docker telecharges |
-| **Volumes** | Donnees persistantes (bases de donnees) |
-| **Dev Environments** | Environnements de developpement |
+| **Containers** | Liste des containers en cours/arrêtés |
+| **Images** | Liste des images Docker téléchargées |
+| **Volumes** | Données persistantes (bases de données) |
+| **Dev Environments** | Environnements de développement |
 
 ---
 
 # PARTIE 3 : TERMINAL ET COMMANDES LINUX
 
-## Etape 3.1 : Ouvrir un terminal
+## Étape 3.1 : Ouvrir un terminal
 
-### Option A : PowerShell (recommande pour Windows)
+### Option A : PowerShell (recommandé pour Windows)
 
-1. Clic droit sur le bouton **Demarrer**
+1. Clic droit sur le bouton **Démarrer**
 2. Cliquez sur **Terminal** ou **Windows PowerShell**
 
 ### Option B : Invite de commandes (CMD)
 
 1. Appuyez sur `Windows + R`
 2. Tapez `cmd`
-3. Appuyez sur Entree
+3. Appuyez sur Entrée
 
-### Option C : Terminal integre VS Code
+### Option C : Terminal intégré VS Code
 
 1. Ouvrez VS Code
 2. Menu **Terminal** > **New Terminal**
-3. Ou raccourci : `Ctrl + ù` (clavier francais) ou `Ctrl + `` (clavier anglais)
+3. Ou raccourci : `Ctrl + ù` (clavier français) ou `Ctrl + `` (clavier anglais)
 
-## Etape 3.2 : Naviguer dans les dossiers
+## Étape 3.2 : Naviguer dans les dossiers
 
 ### Commandes de base
 
@@ -142,9 +142,9 @@ Docker Compose version v2.23.3-desktop.2
 |------------------|----------------|-------------|
 | `cd dossier` | `cd dossier` | Entrer dans un dossier |
 | `cd ..` | `cd ..` | Remonter d'un niveau |
-| `cd \` | `cd /` | Aller a la racine |
+| `cd \` | `cd /` | Aller à la racine |
 | `dir` | `ls` | Lister les fichiers |
-| `cls` | `clear` | Effacer l'ecran |
+| `cls` | `clear` | Effacer l'écran |
 | `type fichier` | `cat fichier` | Afficher un fichier |
 
 ### Exemple pratique
@@ -153,10 +153,10 @@ Docker Compose version v2.23.3-desktop.2
 # Aller dans le dossier du projet
 cd C:\00-projetsGA\projet-e-contact-backend
 
-# Verifier qu'on est au bon endroit
+# Vérifier qu'on est au bon endroit
 dir
 
-# Resultat attendu :
+# Résultat attendu :
 #    Directory: C:\00-projetsGA\projet-e-contact-backend
 #
 #    Mode         LastWriteTime     Length Name
@@ -169,7 +169,7 @@ dir
 #    ...
 ```
 
-## Etape 3.3 : Commandes Docker essentielles
+## Étape 3.3 : Commandes Docker essentielles
 
 ### Commandes de base
 
@@ -177,7 +177,7 @@ dir
 # Voir les containers en cours
 docker ps
 
-# Voir TOUS les containers (y compris arretes)
+# Voir TOUS les containers (y compris arrêtés)
 docker ps -a
 
 # Voir les images
@@ -196,13 +196,13 @@ docker compose up -d
 # Lancer avec rebuild
 docker compose up --build -d
 
-# Arreter les services
+# Arrêter les services
 docker compose down
 
 # Voir les logs
 docker compose logs
 
-# Voir les logs en temps reel
+# Voir les logs en temps réel
 docker compose logs -f
 ```
 
@@ -210,7 +210,7 @@ docker compose logs -f
 
 # PARTIE 4 : LANCER LE PROJET
 
-## Etape 4.1 : Cloner ou telecharger le projet
+## Étape 4.1 : Cloner ou télécharger le projet
 
 ### Option A : Avec Git
 
@@ -225,26 +225,26 @@ git clone https://github.com/VOTRE_USERNAME/projet-e-contact-backend.git
 cd projet-e-contact-backend
 ```
 
-### Option B : Telecharger le ZIP
+### Option B : Télécharger le ZIP
 
 1. Allez sur GitHub
 2. Cliquez sur **Code** > **Download ZIP**
 3. Extrayez le ZIP dans `C:\00-projetsGA\`
 
-## Etape 4.2 : Creer le fichier .env (optionnel)
+## Étape 4.2 : Créer le fichier .env (optionnel)
 
 ```powershell
 # Copier le fichier exemple
 copy .env.example .env
 
-# Ou creer manuellement avec Notepad
+# Ou créer manuellement avec Notepad
 notepad .env
 ```
 
 Contenu du fichier `.env` :
 
 ```env
-# Base de donnees
+# Base de données
 DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=contactdb
@@ -260,10 +260,10 @@ MAIL_USER=noreply@example.com
 JWT_SECRET=votre-secret-jwt-ici
 ```
 
-## Etape 4.3 : Lancer le projet
+## Étape 4.3 : Lancer le projet
 
 ```powershell
-# S'assurer d'etre dans le bon dossier
+# S'assurer d'être dans le bon dossier
 cd C:\00-projetsGA\projet-e-contact-backend
 
 # Lancer Docker Compose
@@ -294,14 +294,14 @@ docker compose up --build -d
  ✔ Container contact-api                     Started
 ```
 
-## Etape 4.4 : Verifier que tout fonctionne
+## Étape 4.4 : Vérifier que tout fonctionne
 
 ```powershell
 # Voir les containers
 docker ps
 ```
 
-Resultat attendu :
+Résultat attendu :
 
 ```
 CONTAINER ID   IMAGE                  COMMAND                  STATUS          PORTS                    NAMES
@@ -310,7 +310,7 @@ def456ghi789   postgres:15-alpine     "docker-entrypoint.s…"   Up 2 minutes   
 ghi789jkl012   mailhog/mailhog        "MailHog"                Up 2 minutes    0.0.0.0:8025->8025/tcp   contact-mailhog
 ```
 
-## Etape 4.5 : Acceder aux services
+## Étape 4.5 : Accéder aux services
 
 Ouvrez votre navigateur :
 
@@ -322,9 +322,9 @@ Ouvrez votre navigateur :
 
 ---
 
-# PARTIE 5 : GERER LES CONTAINERS
+# PARTIE 5 : GÉRER LES CONTAINERS
 
-## Etape 5.1 : Via Docker Desktop (interface graphique)
+## Étape 5.1 : Via Docker Desktop (interface graphique)
 
 ### Voir les containers
 
@@ -352,62 +352,62 @@ Cliquez sur un container pour voir les options :
 
 | Bouton | Action |
 |--------|--------|
-| **Stop** | Arreter le container |
-| **Start** | Demarrer le container |
-| **Restart** | Redemarrer le container |
+| **Stop** | Arrêter le container |
+| **Start** | Démarrer le container |
+| **Restart** | Redémarrer le container |
 | **Delete** | Supprimer le container |
 | **Open in terminal** | Ouvrir un terminal DANS le container |
 | **View logs** | Voir les logs du container |
 
-## Etape 5.2 : Via ligne de commande
+## Étape 5.2 : Via ligne de commande
 
-### Arreter un container
+### Arrêter un container
 
 ```powershell
-# Arreter un container specifique
+# Arrêter un container spécifique
 docker stop contact-api
 
-# Arreter tous les containers du projet
+# Arrêter tous les containers du projet
 docker compose stop
 ```
 
-### Demarrer un container
+### Démarrer un container
 
 ```powershell
-# Demarrer un container specifique
+# Démarrer un container spécifique
 docker start contact-api
 
-# Demarrer tous les containers du projet
+# Démarrer tous les containers du projet
 docker compose start
 ```
 
-### Redemarrer un container
+### Redémarrer un container
 
 ```powershell
-# Redemarrer un container specifique
+# Redémarrer un container spécifique
 docker restart contact-api
 
-# Redemarrer tous les containers
+# Redémarrer tous les containers
 docker compose restart
 ```
 
 ### Supprimer les containers
 
 ```powershell
-# Arreter et supprimer tous les containers du projet
+# Arrêter et supprimer tous les containers du projet
 docker compose down
 
-# Supprimer aussi les volumes (ATTENTION: perte de donnees!)
+# Supprimer aussi les volumes (ATTENTION: perte de données!)
 docker compose down -v
 ```
 
-## Etape 5.3 : Entrer dans un container
+## Étape 5.3 : Entrer dans un container
 
 ### Via Docker Desktop
 
 1. Cliquez sur le container
 2. Cliquez sur **Open in terminal**
-3. Vous etes maintenant DANS le container
+3. Vous êtes maintenant DANS le container
 
 ### Via ligne de commande
 
@@ -425,11 +425,11 @@ docker exec -it contact-mailhog sh
 ### Une fois dans le container
 
 ```bash
-# Vous etes maintenant dans un environnement Linux !
+# Vous êtes maintenant dans un environnement Linux !
 # Le prompt change :
 
-/app $    # Vous etes dans le container API
-root@abc123:/# # Vous etes dans le container PostgreSQL
+/app $    # Vous êtes dans le container API
+root@abc123:/# # Vous êtes dans le container PostgreSQL
 
 # Pour sortir du container
 exit
@@ -437,18 +437,18 @@ exit
 
 ---
 
-# PARTIE 6 : GERER LES IMAGES
+# PARTIE 6 : GÉRER LES IMAGES
 
-## Etape 6.1 : Comprendre les images
+## Étape 6.1 : Comprendre les images
 
-Une **image** est un modele pour creer des containers.
-Un **container** est une instance en cours d'execution d'une image.
+Une **image** est un modèle pour créer des containers.
+Un **container** est une instance en cours d'exécution d'une image.
 
 Analogie :
 - Image = Recette de cuisine
-- Container = Plat prepare a partir de la recette
+- Container = Plat préparé à partir de la recette
 
-## Etape 6.2 : Via Docker Desktop
+## Étape 6.2 : Via Docker Desktop
 
 1. Ouvrez Docker Desktop
 2. Cliquez sur l'onglet **Images**
@@ -470,11 +470,11 @@ Analogie :
 
 | Action | Description |
 |--------|-------------|
-| **Run** | Creer un container a partir de cette image |
-| **Pull** | Telecharger la derniere version |
+| **Run** | Créer un container à partir de cette image |
+| **Pull** | Télécharger la dernière version |
 | **Delete** | Supprimer l'image |
 
-## Etape 6.3 : Via ligne de commande
+## Étape 6.3 : Via ligne de commande
 
 ### Lister les images
 
@@ -482,7 +482,7 @@ Analogie :
 docker images
 ```
 
-Resultat :
+Résultat :
 
 ```
 REPOSITORY        TAG          IMAGE ID       CREATED        SIZE
@@ -491,13 +491,13 @@ postgres          15-alpine    def456ghi789   3 days ago     232MB
 mailhog/mailhog   latest       ghi789jkl012   2 weeks ago    45MB
 ```
 
-### Telecharger une image
+### Télécharger une image
 
 ```powershell
-# Telecharger PostgreSQL
+# Télécharger PostgreSQL
 docker pull postgres:15-alpine
 
-# Telecharger Nginx
+# Télécharger Nginx
 docker pull nginx:alpine
 ```
 
@@ -514,13 +514,13 @@ docker rmi abc123def456
 docker rmi -f abc123def456
 ```
 
-### Nettoyer les images inutilisees
+### Nettoyer les images inutilisées
 
 ```powershell
-# Supprimer les images non utilisees
+# Supprimer les images non utilisées
 docker image prune
 
-# Supprimer TOUTES les images non utilisees (avec confirmation)
+# Supprimer TOUTES les images non utilisées (avec confirmation)
 docker image prune -a
 ```
 
@@ -539,9 +539,9 @@ docker compose build --no-cache
 
 ---
 
-# PARTIE 7 : ACCEDER A LA BASE DE DONNEES
+# PARTIE 7 : ACCÉDER À LA BASE DE DONNÉES
 
-## Etape 7.1 : Methode 1 - Via Docker Desktop
+## Étape 7.1 : Méthode 1 - Via Docker Desktop
 
 1. Ouvrez Docker Desktop
 2. Cliquez sur le container **contact-db**
@@ -552,19 +552,19 @@ docker compose build --no-cache
 psql -U postgres -d contactdb
 ```
 
-Vous etes maintenant dans PostgreSQL :
+Vous êtes maintenant dans PostgreSQL :
 
 ```
 contactdb=#
 ```
 
-## Etape 7.2 : Methode 2 - Via PowerShell (une seule commande)
+## Étape 7.2 : Méthode 2 - Via PowerShell (une seule commande)
 
 ```powershell
 docker exec -it contact-db psql -U postgres -d contactdb
 ```
 
-## Etape 7.3 : Commandes PostgreSQL
+## Étape 7.3 : Commandes PostgreSQL
 
 ### Navigation de base
 
@@ -572,7 +572,7 @@ docker exec -it contact-db psql -U postgres -d contactdb
 -- Lister les tables
 \dt
 
--- Resultat :
+-- Résultat :
 --          List of relations
 --  Schema |  Name  | Type  |  Owner
 -- --------+--------+-------+----------
@@ -586,13 +586,13 @@ docker exec -it contact-db psql -U postgres -d contactdb
 \q
 ```
 
-### Voir les donnees
+### Voir les données
 
 ```sql
 -- Voir tous les leads
 SELECT * FROM leads;
 
--- Voir les leads de facon lisible
+-- Voir les leads de façon lisible
 SELECT 
     id,
     full_name AS "Nom",
@@ -609,7 +609,7 @@ SELECT COUNT(*) AS "Total" FROM leads;
 SELECT id, first_name, last_name, email, role FROM users;
 ```
 
-### Modifier les donnees
+### Modifier les données
 
 ```sql
 -- Changer le statut d'un lead
@@ -622,7 +622,7 @@ DELETE FROM leads WHERE id = 1;
 DELETE FROM leads;
 ```
 
-## Etape 7.4 : Methode 3 - Commandes one-liner depuis PowerShell
+## Étape 7.4 : Méthode 3 - Commandes one-liner depuis PowerShell
 
 ```powershell
 # Voir tous les leads
@@ -635,18 +635,18 @@ docker exec -it contact-db psql -U postgres -d contactdb -c "SELECT COUNT(*) FRO
 docker exec -it contact-db psql -U postgres -d contactdb -c "SELECT * FROM users;"
 ```
 
-## Etape 7.5 : Methode 4 - Via un outil graphique (DBeaver)
+## Étape 7.5 : Méthode 4 - Via un outil graphique (DBeaver)
 
 ### Installer DBeaver
 
-1. Telechargez DBeaver : https://dbeaver.io/download/
+1. Téléchargez DBeaver : https://dbeaver.io/download/
 2. Installez-le
 3. Lancez DBeaver
 
 ### Configurer la connexion
 
 1. Cliquez sur **Database** > **New Database Connection**
-2. Selectionnez **PostgreSQL**
+2. Sélectionnez **PostgreSQL**
 3. Remplissez :
 
 | Champ | Valeur |
@@ -662,12 +662,12 @@ docker exec -it contact-db psql -U postgres -d contactdb -c "SELECT * FROM users
 
 ### Utiliser DBeaver
 
-1. Dans le panneau de gauche, developpez la connexion
-2. Developpez **contactdb** > **Schemas** > **public** > **Tables**
-3. Double-cliquez sur **leads** pour voir les donnees
+1. Dans le panneau de gauche, développez la connexion
+2. Développez **contactdb** > **Schemas** > **public** > **Tables**
+3. Double-cliquez sur **leads** pour voir les données
 4. Vous pouvez modifier directement dans l'interface
 
-## Etape 7.6 : Exporter/Importer les donnees
+## Étape 7.6 : Exporter/Importer les données
 
 ### Exporter en CSV
 
@@ -676,7 +676,7 @@ docker exec -it contact-db psql -U postgres -d contactdb -c "SELECT * FROM users
 docker exec -it contact-db psql -U postgres -d contactdb -c "COPY leads TO STDOUT WITH CSV HEADER" > leads_export.csv
 ```
 
-### Creer un backup SQL
+### Créer un backup SQL
 
 ```powershell
 # Backup complet de la base
@@ -695,14 +695,14 @@ Get-Content backup.sql | docker exec -i contact-db psql -U postgres -d contactdb
 
 ---
 
-# PARTIE 8 : GERER LES VOLUMES
+# PARTIE 8 : GÉRER LES VOLUMES
 
-## Etape 8.1 : Comprendre les volumes
+## Étape 8.1 : Comprendre les volumes
 
-Les **volumes** stockent les donnees de facon persistante.
-Sans volume, les donnees sont perdues quand le container est supprime.
+Les **volumes** stockent les données de façon persistante.
+Sans volume, les données sont perdues quand le container est supprimé.
 
-## Etape 8.2 : Via Docker Desktop
+## Étape 8.2 : Via Docker Desktop
 
 1. Ouvrez Docker Desktop
 2. Cliquez sur l'onglet **Volumes**
@@ -722,9 +722,9 @@ Sans volume, les donnees sont perdues quand le container est supprime.
 | Action | Description |
 |--------|-------------|
 | **View data** | Voir le contenu du volume |
-| **Delete** | Supprimer le volume (PERTE DE DONNEES!) |
+| **Delete** | Supprimer le volume (PERTE DE DONNÉES!) |
 
-## Etape 8.3 : Via ligne de commande
+## Étape 8.3 : Via ligne de commande
 
 ### Lister les volumes
 
@@ -732,7 +732,7 @@ Sans volume, les donnees sont perdues quand le container est supprime.
 docker volume ls
 ```
 
-Resultat :
+Résultat :
 
 ```
 DRIVER    VOLUME NAME
@@ -745,7 +745,7 @@ local     projet-e-contact-backend_postgres_data
 docker volume inspect projet-e-contact-backend_postgres_data
 ```
 
-Resultat :
+Résultat :
 
 ```json
 [
@@ -767,10 +767,10 @@ Resultat :
 ### Supprimer un volume
 
 ```powershell
-# Supprimer un volume specifique (ATTENTION!)
+# Supprimer un volume spécifique (ATTENTION!)
 docker volume rm projet-e-contact-backend_postgres_data
 
-# Supprimer les volumes non utilises
+# Supprimer les volumes non utilisés
 docker volume prune
 ```
 
@@ -778,9 +778,9 @@ docker volume prune
 
 # PARTIE 9 : VOIR LES LOGS
 
-## Etape 9.1 : Via Docker Desktop
+## Étape 9.1 : Via Docker Desktop
 
-1. Cliquez sur le container souhaite
+1. Cliquez sur le container souhaité
 2. Les logs s'affichent automatiquement
 
 ```
@@ -800,7 +800,7 @@ docker volume prune
 +------------------------------------------------------------------+
 ```
 
-## Etape 9.2 : Via ligne de commande
+## Étape 9.2 : Via ligne de commande
 
 ### Voir les logs d'un container
 
@@ -818,13 +818,13 @@ docker logs contact-mailhog
 ### Options utiles
 
 ```powershell
-# Voir les 50 dernieres lignes
+# Voir les 50 dernières lignes
 docker logs contact-api --tail 50
 
-# Suivre les logs en temps reel
+# Suivre les logs en temps réel
 docker logs contact-api -f
 
-# Suivre les 20 dernieres lignes en temps reel
+# Suivre les 20 dernières lignes en temps réel
 docker logs contact-api --tail 20 -f
 
 # Voir les logs avec timestamp
@@ -837,10 +837,10 @@ docker logs contact-api -t
 # Voir tous les logs
 docker compose logs
 
-# Suivre tous les logs en temps reel
+# Suivre tous les logs en temps réel
 docker compose logs -f
 
-# Logs d'un service specifique
+# Logs d'un service spécifique
 docker compose logs api
 docker compose logs postgres
 ```
@@ -857,11 +857,11 @@ docker logs contact-api 2>&1 | Select-String "email"
 
 ---
 
-# PARTIE 10 : RESOUDRE LES PROBLEMES
+# PARTIE 10 : RÉSOUDRE LES PROBLÈMES
 
-## Probleme 1 : Docker ne demarre pas
+## Problème 1 : Docker ne démarre pas
 
-### Symptome
+### Symptôme
 ```
 error during connect: This error may indicate that the docker daemon is not running
 ```
@@ -869,13 +869,13 @@ error during connect: This error may indicate that the docker daemon is not runn
 ### Solution
 
 1. Ouvrez Docker Desktop
-2. Attendez que l'icone devienne verte
-3. Si ca ne fonctionne pas, redemarrez Docker Desktop
-4. En dernier recours, redemarrez Windows
+2. Attendez que l'icône devienne verte
+3. Si ça ne fonctionne pas, redémarrez Docker Desktop
+4. En dernier recours, redémarrez Windows
 
-## Probleme 2 : Port deja utilise
+## Problème 2 : Port déjà utilisé
 
-### Symptome
+### Symptôme
 ```
 Error response from daemon: Ports are not available: exposing port TCP 0.0.0.0:8080
 ```
@@ -886,16 +886,16 @@ Error response from daemon: Ports are not available: exposing port TCP 0.0.0.0:8
 # Trouver le processus qui utilise le port 8080
 netstat -ano | findstr :8080
 
-# Resultat exemple :
+# Résultat exemple :
 # TCP    0.0.0.0:8080    0.0.0.0:0    LISTENING    12345
 
-# Tuer le processus (remplacez 12345 par le PID trouve)
+# Tuer le processus (remplacez 12345 par le PID trouvé)
 taskkill /PID 12345 /F
 ```
 
-## Probleme 3 : Container ne demarre pas
+## Problème 3 : Container ne démarre pas
 
-### Symptome
+### Symptôme
 ```
 Container contact-api exited with code 1
 ```
@@ -906,16 +906,16 @@ Container contact-api exited with code 1
 # Voir les logs pour comprendre l'erreur
 docker logs contact-api
 
-# Verifier la configuration
+# Vérifier la configuration
 docker compose config
 
 # Reconstruire l'image
 docker compose up --build -d
 ```
 
-## Probleme 4 : Pas de connexion a la base de donnees
+## Problème 4 : Pas de connexion à la base de données
 
-### Symptome
+### Symptôme
 ```
 Connection refused: localhost:5432
 ```
@@ -923,19 +923,19 @@ Connection refused: localhost:5432
 ### Solution
 
 ```powershell
-# Verifier que PostgreSQL tourne
+# Vérifier que PostgreSQL tourne
 docker ps | findstr postgres
 
-# Verifier les logs de PostgreSQL
+# Vérifier les logs de PostgreSQL
 docker logs contact-db
 
-# Redemarrer PostgreSQL
+# Redémarrer PostgreSQL
 docker restart contact-db
 ```
 
-## Probleme 5 : Espace disque plein
+## Problème 5 : Espace disque plein
 
-### Symptome
+### Symptôme
 ```
 no space left on device
 ```
@@ -946,16 +946,16 @@ no space left on device
 # Voir l'utilisation de Docker
 docker system df
 
-# Nettoyer tout ce qui n'est pas utilise
+# Nettoyer tout ce qui n'est pas utilisé
 docker system prune -a
 
-# Nettoyer aussi les volumes (ATTENTION: perte de donnees!)
+# Nettoyer aussi les volumes (ATTENTION: perte de données!)
 docker system prune -a --volumes
 ```
 
-## Probleme 6 : Image ne se reconstruit pas
+## Problème 6 : Image ne se reconstruit pas
 
-### Symptome
+### Symptôme
 Les modifications du code ne sont pas prises en compte.
 
 ### Solution
@@ -964,14 +964,14 @@ Les modifications du code ne sont pas prises en compte.
 # Forcer la reconstruction sans cache
 docker compose build --no-cache
 
-# Ou tout arreter et relancer proprement
+# Ou tout arrêter et relancer proprement
 docker compose down
 docker compose up --build -d
 ```
 
 ---
 
-# RESUME DES COMMANDES ESSENTIELLES
+# RÉSUMÉ DES COMMANDES ESSENTIELLES
 
 ## Commandes quotidiennes
 
@@ -982,7 +982,7 @@ docker compose up -d
 # Lancer avec rebuild
 docker compose up --build -d
 
-# Arreter le projet
+# Arrêter le projet
 docker compose down
 
 # Voir les containers
@@ -992,13 +992,13 @@ docker ps
 docker compose logs -f
 ```
 
-## Acces base de donnees
+## Accès base de données
 
 ```powershell
 # Entrer dans PostgreSQL
 docker exec -it contact-db psql -U postgres -d contactdb
 
-# Requete rapide
+# Requête rapide
 docker exec -it contact-db psql -U postgres -d contactdb -c "SELECT * FROM leads;"
 ```
 
@@ -1008,16 +1008,16 @@ docker exec -it contact-db psql -U postgres -d contactdb -c "SELECT * FROM leads
 # Nettoyer Docker
 docker system prune -a
 
-# Backup base de donnees
+# Backup base de données
 docker exec contact-db pg_dump -U postgres contactdb > backup.sql
 
-# Redemarrer un service
+# Redémarrer un service
 docker restart contact-api
 ```
 
 ---
 
-# AIDE-MEMOIRE VISUEL
+# AIDE-MÉMOIRE VISUEL
 
 ```
 +------------------------------------------------------------------+
@@ -1028,7 +1028,7 @@ docker restart contact-api
 |     PowerShell> cd C:\projet                                      |
 |     PowerShell> docker compose up --build -d                      |
 |                                                                   |
-|  2. VERIFIER                                                      |
+|  2. VÉRIFIER                                                      |
 |     PowerShell> docker ps                                         |
 |     -> 3 containers running                                       |
 |                                                                   |
@@ -1039,15 +1039,14 @@ docker restart contact-api
 |  4. DEBUG                                                         |
 |     PowerShell> docker logs contact-api -f                        |
 |                                                                   |
-|  5. BASE DE DONNEES                                               |
+|  5. BASE DE DONNÉES                                               |
 |     PowerShell> docker exec -it contact-db psql -U postgres -d    |
 |                 contactdb                                         |
 |                                                                   |
-|  6. ARRETER                                                       |
+|  6. ARRÊTER                                                       |
 |     PowerShell> docker compose down                               |
 |                                                                   |
 +------------------------------------------------------------------+
 ```
 
 Ce guide couvre tout ce dont vous avez besoin pour utiliser Docker Desktop sur Windows.
-
