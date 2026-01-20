@@ -576,6 +576,137 @@ Par défaut, les ports peuvent être privés. Pour les rendre publics :
 
 ---
 
+# ANNEXE : EXEMPLE CONCRET D'URLS CODESPACES
+
+## Format d'URL Codespaces
+
+Le format est : `https://NOM-CODESPACE-PORT.app.github.dev`
+
+Exemple réel de nom de Codespace :
+```
+refactored-space-funicular-7vr6459xgwprhr75j
+```
+
+## URLs pour ce Codespace
+
+| Service | URL complète |
+|---------|--------------|
+| **Swagger UI** | https://refactored-space-funicular-7vr6459xgwprhr75j-8080.app.github.dev/swagger-ui.html |
+| **MailHog** | https://refactored-space-funicular-7vr6459xgwprhr75j-8025.app.github.dev |
+| **API Contact** | https://refactored-space-funicular-7vr6459xgwprhr75j-8080.app.github.dev/api/contact |
+| **API Auth** | https://refactored-space-funicular-7vr6459xgwprhr75j-8080.app.github.dev/api/auth/login |
+| **API Admin** | https://refactored-space-funicular-7vr6459xgwprhr75j-8080.app.github.dev/api/admin/leads |
+| **Frontend (port 80)** | https://refactored-space-funicular-7vr6459xgwprhr75j-80.app.github.dev |
+| **Frontend (port 3000)** | https://refactored-space-funicular-7vr6459xgwprhr75j-3000.app.github.dev |
+| **OpenAPI JSON** | https://refactored-space-funicular-7vr6459xgwprhr75j-8080.app.github.dev/v3/api-docs |
+
+## Comment trouver votre nom de Codespace
+
+### Méthode 1 : Dans la barre de titre VS Code
+
+Le nom apparaît dans la barre de titre :
+```
+Codespaces: refactored-space-funicular-7vr6459xgwprhr75j
+```
+
+### Méthode 2 : Dans le terminal
+
+```bash
+echo $CODESPACE_NAME
+```
+
+Résultat :
+```
+refactored-space-funicular-7vr6459xgwprhr75j
+```
+
+### Méthode 3 : Dans l'onglet PORTS
+
+1. Cliquez sur l'onglet **PORTS** en bas de VS Code
+2. La colonne **Forwarded Address** montre l'URL complète
+
+```
++--------------------------------------------------------------------------+
+|  PORTS                                                                    |
++--------------------------------------------------------------------------+
+|  Port | Local Address    | Forwarded Address                             |
++--------------------------------------------------------------------------+
+|  8080 | localhost:8080   | refactored-space-funicular-7vr6459xgwprhr75j  |
+|       |                  | -8080.app.github.dev                          |
++--------------------------------------------------------------------------+
+|  8025 | localhost:8025   | refactored-space-funicular-7vr6459xgwprhr75j  |
+|       |                  | -8025.app.github.dev                          |
++--------------------------------------------------------------------------+
+```
+
+## Construire l'URL manuellement
+
+### Formule
+
+```
+https://{CODESPACE_NAME}-{PORT}.app.github.dev{PATH}
+```
+
+### Exemples
+
+| Composant | Valeur |
+|-----------|--------|
+| CODESPACE_NAME | `refactored-space-funicular-7vr6459xgwprhr75j` |
+| PORT | `8080` |
+| PATH | `/swagger-ui.html` |
+
+**URL finale :**
+```
+https://refactored-space-funicular-7vr6459xgwprhr75j-8080.app.github.dev/swagger-ui.html
+```
+
+## Script pour afficher toutes les URLs
+
+Créez un script `show-urls.sh` :
+
+```bash
+#!/bin/bash
+
+echo "=========================================="
+echo "URLs de votre Codespace"
+echo "=========================================="
+echo ""
+echo "Swagger UI:"
+echo "https://${CODESPACE_NAME}-8080.app.github.dev/swagger-ui.html"
+echo ""
+echo "MailHog:"
+echo "https://${CODESPACE_NAME}-8025.app.github.dev"
+echo ""
+echo "API Contact:"
+echo "https://${CODESPACE_NAME}-8080.app.github.dev/api/contact"
+echo ""
+echo "Frontend (port 80):"
+echo "https://${CODESPACE_NAME}-80.app.github.dev"
+echo ""
+echo "Frontend (port 3000):"
+echo "https://${CODESPACE_NAME}-3000.app.github.dev"
+echo ""
+echo "=========================================="
+```
+
+Exécutez :
+```bash
+chmod +x show-urls.sh
+./show-urls.sh
+```
+
+## Comparaison Local vs Codespaces
+
+| Service | URL Locale | URL Codespaces |
+|---------|------------|----------------|
+| Swagger | http://localhost:8080/swagger-ui.html | https://CODESPACE-8080.app.github.dev/swagger-ui.html |
+| MailHog | http://localhost:8025 | https://CODESPACE-8025.app.github.dev |
+| API | http://localhost:8080/api/contact | https://CODESPACE-8080.app.github.dev/api/contact |
+
+> **Note** : Sur Codespaces, c'est `https://` (sécurisé), pas `http://`
+
+---
+
 # CHECKLIST
 
 - [ ] Docker Desktop lancé (icône verte)
@@ -586,4 +717,11 @@ Par défaut, les ports peuvent être privés. Pour les rendre publics :
 - [ ] Email reçu dans MailHog
 - [ ] Authentification JWT fonctionnelle
 - [ ] Endpoints admin accessibles avec JWT
+
+## Checklist Codespaces
+
+- [ ] Ports 8080 et 8025 visibles dans l'onglet PORTS
+- [ ] Ports rendus publics (clic droit > Port Visibility > Public)
+- [ ] URL Swagger fonctionne : https://CODESPACE-8080.app.github.dev/swagger-ui.html
+- [ ] URL MailHog fonctionne : https://CODESPACE-8025.app.github.dev
 
