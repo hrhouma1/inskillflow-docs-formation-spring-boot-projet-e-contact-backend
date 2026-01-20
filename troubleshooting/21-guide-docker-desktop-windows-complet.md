@@ -437,6 +437,391 @@ exit
 
 ---
 
+## Étape 5.4 : Commandes à l'intérieur du container API (Spring Boot)
+
+### Entrer dans le container
+
+```powershell
+docker exec -it contact-api sh
+```
+
+### Commandes disponibles
+
+```bash
+# Voir où vous êtes
+pwd
+# Résultat : /app
+
+# Lister les fichiers
+ls -la
+# Résultat :
+# -rw-r--r-- 1 root root 45678901 Jan 20 14:30 app.jar
+
+# Voir les variables d'environnement
+env
+
+# Voir les variables d'environnement liées à la DB
+env | grep DB
+# Résultat :
+# DB_HOST=postgres
+# DB_PORT=5432
+# DB_NAME=contactdb
+# DB_USER=postgres
+# DB_PASSWORD=postgres
+
+# Voir les variables d'environnement liées au mail
+env | grep MAIL
+# Résultat :
+# MAIL_HOST=mailhog
+# MAIL_PORT=1025
+# MAIL_USER=noreply@example.com
+
+# Voir l'utilisation mémoire
+free -m
+
+# Voir les processus en cours
+ps aux
+
+# Voir le processus Java
+ps aux | grep java
+
+# Tester la connexion à PostgreSQL
+nc -zv postgres 5432
+# Résultat : postgres (172.18.0.2:5432) open
+
+# Tester la connexion à MailHog
+nc -zv mailhog 1025
+# Résultat : mailhog (172.18.0.3:1025) open
+
+# Voir les fichiers de configuration (si présents)
+cat /app/application.yml 2>/dev/null || echo "Fichier dans le JAR"
+
+# Voir l'espace disque
+df -h
+
+# Sortir du container
+exit
+```
+
+---
+
+## Étape 5.5 : Commandes à l'intérieur du container PostgreSQL
+
+### Entrer dans le container
+
+```powershell
+docker exec -it contact-db bash
+```
+
+### Commandes système
+
+```bash
+# Voir où vous êtes
+pwd
+# Résultat : /
+
+# Voir la version de PostgreSQL
+postgres --version
+# Résultat : postgres (PostgreSQL) 15.x
+
+# Voir les variables d'environnement
+env | grep POSTGRES
+# Résultat :
+# POSTGRES_DB=contactdb
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD=postgres
+
+# Voir l'espace disque utilisé par PostgreSQL
+du -sh /var/lib/postgresql/data
+# Résultat : 150M /var/lib/postgresql/data
+
+# Lister les fichiers de données
+ls -la /var/lib/postgresql/data
+
+# Voir les connexions actives
+cat /var/lib/postgresql/data/pg_hba.conf
+```
+
+### Accéder à PostgreSQL (depuis l'intérieur du container)
+
+```bash
+# Se connecter à PostgreSQL
+psql -U postgres -d contactdb
+
+# Vous êtes maintenant dans psql :
+contactdb=#
+```
+
+### Commandes PostgreSQL (psql)
+
+```sql
+-- Voir la version
+SELECT version();
+
+-- Lister toutes les bases de données
+\l
+
+-- Se connecter à une base
+\c contactdb
+
+-- Lister les tables
+\dt
+
+-- Résultat :
+--          List of relations
+--  Schema |  Name  | Type  |  Owner
+-- --------+--------+-------+----------
+--  public | leads  | table | postgres
+--  public | users  | table | postgres
+
+-- Voir la structure de la table leads
+\d leads
+
+-- Voir la structure de la table users
+\d users
+
+-- Compter les enregistrements
+SELECT 'leads' as table_name, COUNT(*) as count FROM leads
+UNION ALL
+SELECT 'users', COUNT(*) FROM users;
+
+-- Voir tous les leads
+SELECT * FROM leads;
+
+-- Voir les leads formatés
+SELECT 
+    id,
+    full_name AS "Nom",
+    email AS "Email",
+    request_type AS "Type",
+    status AS "Statut",
+    created_at::timestamp(0) AS "Créé le"
+FROM leads
+ORDER BY id DESC;
+
+-- Voir les utilisateurs (admins)
+SELECT 
+    id,
+    first_name || ' ' || last_name AS "Nom complet",
+    email AS "Email",
+    role AS "Rôle",
+    created_at::date AS "Créé le"
+FROM users;
+
+-- Statistiques par statut
+SELECT 
+    status AS "Statut",
+    COUNT(*) AS "Nombre",
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM leads), 1) AS "Pourcentage"
+FROM leads
+GROUP BY status
+ORDER BY COUNT(*) DESC;
+
+-- Statistiques par type de demande
+SELECT 
+    request_type AS "Type",
+    COUNT(*) AS "Nombre"
+FROM leads
+GROUP BY request_type
+ORDER BY COUNT(*) DESC;
+
+-- Leads des dernières 24 heures
+SELECT * FROM leads 
+WHERE created_at >= NOW() - INTERVAL '24 hours';
+
+-- Rechercher par email
+SELECT * FROM leads WHERE email ILIKE '%gmail%';
+
+-- Rechercher par nom
+SELECT * FROM leads WHERE full_name ILIKE '%dupont%';
+
+-- Modifier le statut d'un lead
+UPDATE leads SET status = 'CONTACTED', updated_at = NOW() WHERE id = 1;
+
+-- Supprimer un lead
+DELETE FROM leads WHERE id = 1;
+
+-- Voir la taille des tables
+SELECT 
+    relname AS "Table",
+    pg_size_pretty(pg_total_relation_size(relid)) AS "Taille"
+FROM pg_catalog.pg_statio_user_tables
+ORDER BY pg_total_relation_size(relid) DESC;
+
+-- Voir les connexions actives à la base
+SELECT 
+    pid,
+    usename AS "Utilisateur",
+    application_name AS "Application",
+    client_addr AS "IP Client",
+    state AS "État"
+FROM pg_stat_activity
+WHERE datname = 'contactdb';
+
+-- Quitter psql
+\q
+```
+
+### Exporter/Importer depuis l'intérieur du container
+
+```bash
+# Créer un backup (depuis bash, pas psql)
+pg_dump -U postgres contactdb > /tmp/backup.sql
+
+# Voir le backup
+head -50 /tmp/backup.sql
+
+# Restaurer un backup
+psql -U postgres -d contactdb < /tmp/backup.sql
+
+# Exporter en CSV
+psql -U postgres -d contactdb -c "COPY leads TO '/tmp/leads.csv' WITH CSV HEADER"
+
+# Voir le CSV
+cat /tmp/leads.csv
+
+# Sortir du container
+exit
+```
+
+---
+
+## Étape 5.6 : Commandes à l'intérieur du container MailHog
+
+### Entrer dans le container
+
+```powershell
+docker exec -it contact-mailhog sh
+```
+
+### Commandes disponibles
+
+```bash
+# Voir où vous êtes
+pwd
+# Résultat : /
+
+# Voir les processus
+ps aux
+# Résultat : MailHog en cours d'exécution
+
+# Voir les variables d'environnement
+env
+
+# Voir l'aide de MailHog
+MailHog --help
+
+# Voir les fichiers de MailHog
+ls -la /
+
+# Tester la connectivité SMTP (port 1025)
+nc -zv localhost 1025
+
+# Tester la connectivité HTTP (port 8025)
+nc -zv localhost 8025
+
+# Voir l'utilisation mémoire
+free -m
+
+# Sortir du container
+exit
+```
+
+### Accéder aux emails via l'API MailHog
+
+```bash
+# Depuis l'intérieur du container MailHog ou depuis PowerShell
+
+# Voir tous les emails (API JSON)
+curl http://localhost:8025/api/v2/messages
+
+# Compter les emails
+curl http://localhost:8025/api/v2/messages | grep -o '"Total":' 
+
+# Supprimer tous les emails
+curl -X DELETE http://localhost:8025/api/v1/messages
+```
+
+---
+
+## Étape 5.7 : Commandes utiles depuis PowerShell (sans entrer dans les containers)
+
+### Exécuter des commandes directement
+
+```powershell
+# Voir les variables d'environnement de l'API
+docker exec contact-api env
+
+# Voir les variables DB
+docker exec contact-api env | Select-String "DB"
+
+# Voir les variables MAIL
+docker exec contact-api env | Select-String "MAIL"
+
+# Tester la connexion DB depuis l'API
+docker exec contact-api nc -zv postgres 5432
+
+# Exécuter une requête SQL
+docker exec contact-db psql -U postgres -d contactdb -c "SELECT COUNT(*) FROM leads;"
+
+# Voir les 5 derniers leads
+docker exec contact-db psql -U postgres -d contactdb -c "SELECT id, full_name, email, status FROM leads ORDER BY id DESC LIMIT 5;"
+
+# Voir les stats par statut
+docker exec contact-db psql -U postgres -d contactdb -c "SELECT status, COUNT(*) FROM leads GROUP BY status;"
+
+# Créer un backup
+docker exec contact-db pg_dump -U postgres contactdb > backup.sql
+
+# Voir la taille des containers
+docker ps --size
+
+# Voir l'utilisation des ressources en temps réel
+docker stats
+
+# Voir l'utilisation des ressources une seule fois
+docker stats --no-stream
+```
+
+---
+
+## Étape 5.8 : Résumé des commandes par container
+
+### Container API (contact-api)
+
+| Commande | Description |
+|----------|-------------|
+| `env` | Voir toutes les variables d'environnement |
+| `env \| grep DB` | Voir les variables de base de données |
+| `env \| grep MAIL` | Voir les variables email |
+| `ps aux` | Voir les processus |
+| `nc -zv postgres 5432` | Tester connexion PostgreSQL |
+| `nc -zv mailhog 1025` | Tester connexion MailHog |
+| `free -m` | Voir la mémoire |
+| `df -h` | Voir l'espace disque |
+
+### Container PostgreSQL (contact-db)
+
+| Commande | Description |
+|----------|-------------|
+| `psql -U postgres -d contactdb` | Entrer dans PostgreSQL |
+| `\dt` | Lister les tables (dans psql) |
+| `\d leads` | Structure de la table leads |
+| `SELECT * FROM leads;` | Voir tous les leads |
+| `SELECT * FROM users;` | Voir tous les utilisateurs |
+| `\q` | Quitter psql |
+| `pg_dump -U postgres contactdb` | Créer un backup |
+
+### Container MailHog (contact-mailhog)
+
+| Commande | Description |
+|----------|-------------|
+| `ps aux` | Voir les processus |
+| `nc -zv localhost 1025` | Tester port SMTP |
+| `nc -zv localhost 8025` | Tester port HTTP |
+
+---
+
 # PARTIE 6 : GÉRER LES IMAGES
 
 ## Étape 6.1 : Comprendre les images
