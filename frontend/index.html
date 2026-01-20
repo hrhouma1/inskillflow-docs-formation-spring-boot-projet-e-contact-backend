@@ -305,13 +305,16 @@
 
     <script>
         // ============================================
-        // CONFIGURATION - MODIFIEZ CETTE URL
+        // CONFIGURATION - CHOISISSEZ VOTRE URL
         // ============================================
         
-        // Pour Docker local :
-        const API_URL = 'http://localhost:8080/api/contact';
+        // Option 1: Docker Compose Full (nginx proxy) - RECOMMANDÉ
+        const API_URL = '/api/contact';
         
-        // Pour Codespaces, décommentez et modifiez :
+        // Option 2: Docker local (frontend séparé)
+        // const API_URL = 'http://localhost:8080/api/contact';
+        
+        // Option 3: Codespaces (frontend séparé)
         // const API_URL = 'https://votre-codespace-8080.app.github.dev/api/contact';
 
         // ============================================

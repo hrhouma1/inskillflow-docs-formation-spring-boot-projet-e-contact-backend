@@ -1,0 +1,99 @@
+version: '3.8'
+
+# ============================================
+# CONFIGURATION COMPLÈTE : Frontend + Backend + DB + MailHog
+# ============================================
+#
+# USAGE:
+#   docker compose -f docker-compose.full.yml up --build -d
+#
+# ACCÈS:
+#   - Frontend: http://localhost (port 80)
+#   - API: http://localhost:8080
+#   - MailHog: http://localhost:8025
+#
+# ============================================
+
+services:
+  # ============================================
+  # FRONTEND - Nginx servant le HTML statique
+  # ============================================
+  frontend:
+    image: nginx:alpine
+    container_name: contact-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # ============================================
+  # BACKEND - Spring Boot API
+  # ============================================
+  api:
+    build: .
+    container_name: contact-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Base de données
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: contactdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      # Email (MailHog)
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
+      MAIL_USER: noreply@example.com
+      MAIL_PASSWORD: 
+      MAIL_AUTH: false
+      # Admin
+      ADMIN_EMAIL: admin@example.com
+      # JWT
+      JWT_SECRET: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0yNTY=
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================
+  # BASE DE DONNÉES - PostgreSQL
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: contact-db
+    environment:
+      POSTGRES_DB: contactdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================
+  # MAILHOG - Capture des emails (dev)
+  # ============================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: contact-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
