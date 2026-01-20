@@ -1,0 +1,68 @@
+version: '3.8'
+
+# ============================================
+# Configuration pour VRAIS EMAILS avec Gmail
+# ============================================
+# 
+# USAGE:
+#   docker compose -f docker-compose.gmail.yml up --build -d
+#
+# PRÉREQUIS:
+#   - Variables GMAIL_USER et GMAIL_PASSWORD définies
+#   - Dans Codespaces: configurer les secrets
+#   - En local: créer un fichier .env avec ces variables
+#
+# ============================================
+
+services:
+  # Base de données PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: contact-db
+    environment:
+      POSTGRES_DB: contactdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Application Spring Boot avec Gmail SMTP
+  api:
+    build: .
+    container_name: contact-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # Base de données
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: contactdb
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      # Gmail SMTP - Vrais emails !
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: 587
+      MAIL_USER: ${GMAIL_USER}
+      MAIL_PASSWORD: ${GMAIL_PASSWORD}
+      MAIL_AUTH: true
+      MAIL_STARTTLS: true
+      # Admin email (recevra les notifications)
+      ADMIN_EMAIL: ${GMAIL_USER}
+      # JWT
+      JWT_SECRET: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci1qd3QtdG9rZW4tZ2VuZXJhdGlvbi0yNTY=
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
