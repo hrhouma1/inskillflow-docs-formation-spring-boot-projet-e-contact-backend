@@ -1,10 +1,10 @@
-# Chapitre 3.3 - Methodes HTTP (GET, POST, PUT, DELETE)
+# Chapitre 3.3 - Méthodes HTTP (GET, POST, PUT, DELETE)
 
 ## Objectifs du chapitre
 
-- Maitriser les methodes HTTP
-- Savoir quand utiliser chaque methode
-- Implementer les operations CRUD
+- Maîtriser les méthodes HTTP
+- Savoir quand utiliser chaque méthode
+- Implémenter les opérations CRUD
 
 ---
 
@@ -12,9 +12,36 @@
 
 ### Correspondance CRUD - HTTP
 
+```mermaid
+graph LR
+    subgraph "CRUD"
+        C[Create]
+        R[Read]
+        U[Update]
+        D[Delete]
+    end
+    
+    subgraph "HTTP"
+        POST[POST]
+        GET[GET]
+        PP[PUT/PATCH]
+        DEL[DELETE]
+    end
+    
+    C --> POST
+    R --> GET
+    U --> PP
+    D --> DEL
+    
+    style POST fill:#4CAF50,color:#fff
+    style GET fill:#2196F3,color:#fff
+    style PP fill:#FF9800,color:#fff
+    style DEL fill:#f44336,color:#fff
+```
+
 | CRUD | HTTP | Description |
 |------|------|-------------|
-| Create | POST | Creer une ressource |
+| Create | POST | Créer une ressource |
 | Read | GET | Lire une ressource |
 | Update | PUT/PATCH | Modifier une ressource |
 | Delete | DELETE | Supprimer une ressource |
@@ -23,12 +50,20 @@
 
 ## 2. GET - Lire
 
-### Caracteristiques
+### Caractéristiques
 
-- **Idempotent**: Plusieurs appels donnent le meme resultat
-- **Safe**: Ne modifie pas les donnees
-- **Cacheable**: Peut etre mis en cache
-- **Pas de corps**: Les donnees sont dans l'URL
+```mermaid
+graph TB
+    GET[GET] --> IDEMP[Idempotent<br/>Plusieurs appels = même résultat]
+    GET --> SAFE[Safe<br/>Ne modifie pas les données]
+    GET --> CACHE[Cacheable<br/>Peut être mis en cache]
+    GET --> NOBODY[Pas de corps<br/>Données dans l'URL]
+```
+
+- **Idempotent** : Plusieurs appels donnent le même résultat
+- **Safe** : Ne modifie pas les données
+- **Cacheable** : Peut être mis en cache
+- **Pas de corps** : Les données sont dans l'URL
 
 ### Exemples
 
@@ -47,7 +82,7 @@ public Page<LeadDto> getAllLeads(Pageable pageable) {
     return service.findAll(pageable);
 }
 
-// Recupere un lead par ID
+// Récupère un lead par ID
 // GET /api/leads/123
 @GetMapping("/{id}")
 public ResponseEntity<LeadDto> getLeadById(@PathVariable Long id) {
@@ -69,27 +104,34 @@ public List<LeadDto> search(@RequestParam("q") String query) {
 }
 ```
 
-### Reponses typiques
+### Réponses typiques
 
 ```
-200 OK              - Succes
+200 OK              - Succès
 404 Not Found       - Ressource inexistante
 ```
 
 ---
 
-## 3. POST - Creer
+## 3. POST - Créer
 
-### Caracteristiques
+### Caractéristiques
 
-- **Non idempotent**: Chaque appel cree une nouvelle ressource
-- **Pas safe**: Modifie les donnees
-- **Corps**: Contient les donnees a creer
+```mermaid
+graph TB
+    POST[POST] --> NIDEMP[Non idempotent<br/>Chaque appel crée une nouvelle ressource]
+    POST --> UNSAFE[Pas safe<br/>Modifie les données]
+    POST --> BODY[Corps<br/>Contient les données à créer]
+```
+
+- **Non idempotent** : Chaque appel crée une nouvelle ressource
+- **Pas safe** : Modifie les données
+- **Corps** : Contient les données à créer
 
 ### Exemples
 
 ```java
-// Cree un nouveau lead
+// Crée un nouveau lead
 // POST /api/leads
 @PostMapping
 @ResponseStatus(HttpStatus.CREATED)
@@ -97,7 +139,7 @@ public LeadDto createLead(@RequestBody @Valid ContactFormRequest request) {
     return service.create(request);
 }
 
-// Avec ResponseEntity pour plus de controle
+// Avec ResponseEntity pour plus de contrôle
 @PostMapping
 public ResponseEntity<LeadDto> createLead(@RequestBody @Valid ContactFormRequest request) {
     LeadDto created = service.create(request);
@@ -106,7 +148,7 @@ public ResponseEntity<LeadDto> createLead(@RequestBody @Valid ContactFormRequest
 }
 ```
 
-### Requete HTTP
+### Requête HTTP
 
 ```
 POST /api/leads HTTP/1.1
@@ -120,28 +162,35 @@ Content-Type: application/json
 }
 ```
 
-### Reponses typiques
+### Réponses typiques
 
 ```
-201 Created         - Ressource creee
-400 Bad Request     - Donnees invalides
-409 Conflict        - Doublon (email existe deja)
+201 Created         - Ressource créée
+400 Bad Request     - Données invalides
+409 Conflict        - Doublon (email existe déjà)
 ```
 
 ---
 
 ## 4. PUT - Remplacer
 
-### Caracteristiques
+### Caractéristiques
 
-- **Idempotent**: Plusieurs appels donnent le meme resultat
-- **Remplace completement**: Tous les champs doivent etre fournis
-- **Corps**: Contient la ressource complete
+```mermaid
+graph TB
+    PUT[PUT] --> IDEMP[Idempotent<br/>Plusieurs appels = même résultat]
+    PUT --> REPLACE[Remplace complètement<br/>Tous les champs doivent être fournis]
+    PUT --> BODY[Corps<br/>Contient la ressource complète]
+```
+
+- **Idempotent** : Plusieurs appels donnent le même résultat
+- **Remplace complètement** : Tous les champs doivent être fournis
+- **Corps** : Contient la ressource complète
 
 ### Exemples
 
 ```java
-// Remplace completement un lead
+// Remplace complètement un lead
 // PUT /api/leads/123
 @PutMapping("/{id}")
 public ResponseEntity<LeadDto> updateLead(
@@ -152,7 +201,7 @@ public ResponseEntity<LeadDto> updateLead(
 }
 ```
 
-### Requete HTTP
+### Requête HTTP
 
 ```
 PUT /api/leads/123 HTTP/1.1
@@ -164,27 +213,40 @@ Content-Type: application/json
   "company": "ACME Corp",
   "phone": "0123456789",
   "requestType": "DEMO",
-  "message": "Mise a jour complete"
+  "message": "Mise à jour complète"
 }
 ```
 
 ### PUT vs PATCH
 
+```mermaid
+graph TB
+    subgraph "PUT"
+        P1["Données: ressource complète"]
+        P2["Champs non fournis: null"]
+    end
+    
+    subgraph "PATCH"
+        PA1["Données: champs à modifier"]
+        PA2["Champs non fournis: inchangés"]
+    end
+```
+
 | Aspect | PUT | PATCH |
 |--------|-----|-------|
-| Donnees | Ressource complete | Champs a modifier |
-| Champs non fournis | Remis a null | Non modifies |
+| Données | Ressource complète | Champs à modifier |
+| Champs non fournis | Remis à null | Non modifiés |
 | Idempotent | Oui | Oui |
 
 ---
 
 ## 5. PATCH - Modifier partiellement
 
-### Caracteristiques
+### Caractéristiques
 
-- **Idempotent**: Plusieurs appels donnent le meme resultat
-- **Modifie partiellement**: Seuls les champs fournis sont modifies
-- **Corps**: Contient seulement les champs a modifier
+- **Idempotent** : Plusieurs appels donnent le même résultat
+- **Modifie partiellement** : Seuls les champs fournis sont modifiés
+- **Corps** : Contient seulement les champs à modifier
 
 ### Exemples
 
@@ -199,7 +261,7 @@ public ResponseEntity<LeadDto> updateStatus(
     return ResponseEntity.ok(updated);
 }
 
-// Modification partielle generique
+// Modification partielle générique
 @PatchMapping("/{id}")
 public ResponseEntity<LeadDto> partialUpdate(
         @PathVariable Long id,
@@ -209,7 +271,7 @@ public ResponseEntity<LeadDto> partialUpdate(
 }
 ```
 
-### Requete HTTP
+### Requête HTTP
 
 ```
 PATCH /api/leads/123 HTTP/1.1
@@ -224,11 +286,18 @@ Content-Type: application/json
 
 ## 6. DELETE - Supprimer
 
-### Caracteristiques
+### Caractéristiques
 
-- **Idempotent**: Supprimer deux fois = supprimer une fois
-- **Pas de corps**: L'ID est dans l'URL
-- **Pas de reponse**: Souvent 204 No Content
+```mermaid
+graph TB
+    DELETE[DELETE] --> IDEMP[Idempotent<br/>Supprimer deux fois = même résultat]
+    DELETE --> NOBODY[Pas de corps<br/>ID dans l'URL]
+    DELETE --> NORES[Pas de réponse<br/>Souvent 204 No Content]
+```
+
+- **Idempotent** : Supprimer deux fois = supprimer une fois
+- **Pas de corps** : L'ID est dans l'URL
+- **Pas de réponse** : Souvent 204 No Content
 
 ### Exemples
 
@@ -241,7 +310,7 @@ public void deleteLead(@PathVariable Long id) {
     service.delete(id);
 }
 
-// Avec verification et reponse
+// Avec vérification et réponse
 @DeleteMapping("/{id}")
 public ResponseEntity<Void> deleteLead(@PathVariable Long id) {
     if (!service.exists(id)) {
@@ -259,16 +328,16 @@ public ResponseEntity<LeadDto> softDelete(@PathVariable Long id) {
 }
 ```
 
-### Reponses typiques
+### Réponses typiques
 
 ```
-204 No Content      - Suppression reussie
+204 No Content      - Suppression réussie
 404 Not Found       - Ressource inexistante
 ```
 
 ---
 
-## 7. Exemple complet: LeadController
+## 7. Exemple complet : LeadController
 
 ```java
 @RestController
@@ -328,13 +397,24 @@ public class LeadController {
 
 ## 8. Idempotence
 
-### Definition
+### Définition
 
-Une operation est **idempotente** si l'executer plusieurs fois produit le meme resultat qu'une seule execution.
+Une opération est **idempotente** si l'exécuter plusieurs fois produit le même résultat qu'une seule exécution.
 
-### Tableau recapitulatif
+### Tableau récapitulatif
 
-| Methode | Idempotent | Safe | Cacheable |
+```mermaid
+graph TB
+    subgraph "Propriétés des méthodes HTTP"
+        GET["GET ✓ Idempotent ✓ Safe"]
+        POST["POST ✗ Idempotent"]
+        PUT["PUT ✓ Idempotent"]
+        PATCH["PATCH ✓ Idempotent"]
+        DELETE["DELETE ✓ Idempotent"]
+    end
+```
+
+| Méthode | Idempotent | Safe | Cacheable |
 |---------|------------|------|-----------|
 | GET | Oui | Oui | Oui |
 | POST | Non | Non | Non |
@@ -347,99 +427,210 @@ Une operation est **idempotente** si l'executer plusieurs fois produit le meme r
 ```
 // GET est idempotent et safe
 GET /api/leads/123    # Renvoie le lead
-GET /api/leads/123    # Renvoie le meme lead
+GET /api/leads/123    # Renvoie le même lead
 
 // POST n'est pas idempotent
-POST /api/leads       # Cree lead ID 1
-POST /api/leads       # Cree lead ID 2 (nouveau!)
+POST /api/leads       # Crée lead ID 1
+POST /api/leads       # Crée lead ID 2 (nouveau!)
 
 // PUT est idempotent
 PUT /api/leads/123    # Remplace le lead
-PUT /api/leads/123    # Meme resultat
+PUT /api/leads/123    # Même résultat
 
 // DELETE est idempotent
 DELETE /api/leads/123 # Supprime le lead
-DELETE /api/leads/123 # Deja supprime, meme resultat
+DELETE /api/leads/123 # Déjà supprimé, même résultat
 ```
 
 ---
 
-## 9. Points cles a retenir
+## 9. Points clés à retenir
+
+```mermaid
+mindmap
+  root((Méthodes HTTP))
+    GET
+      Lire
+      Idempotent
+      Safe
+    POST
+      Créer
+      Non idempotent
+    PUT
+      Remplacer
+      Idempotent
+    PATCH
+      Modifier
+      Idempotent
+    DELETE
+      Supprimer
+      Idempotent
+```
 
 1. **GET** = Lire (idempotent, safe)
-2. **POST** = Creer (non idempotent)
-3. **PUT** = Remplacer completement (idempotent)
+2. **POST** = Créer (non idempotent)
+3. **PUT** = Remplacer complètement (idempotent)
 4. **PATCH** = Modifier partiellement (idempotent)
 5. **DELETE** = Supprimer (idempotent)
 
 ---
 
-## QUIZ 3.3 - Methodes HTTP
+## QUIZ 3.3 - Méthodes HTTP
 
-**1. Quelle methode HTTP pour creer une ressource?**
-   - a) GET
-   - b) POST
-   - c) PUT
-   - d) CREATE
+**1. Quelle méthode HTTP pour créer une ressource?**
+- a) GET
+- b) POST
+- c) PUT
+- d) CREATE
 
-**2. Quelle est la difference entre PUT et PATCH?**
-   - a) Aucune
-   - b) PUT remplace, PATCH modifie partiellement
-   - c) PATCH remplace, PUT modifie
-   - d) PUT est pour creation
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Quelle methode est idempotente?**
-   - a) POST seulement
-   - b) GET, PUT, PATCH, DELETE
-   - c) GET seulement
-   - d) Aucune
+**Réponse : b) POST**
 
-**4. Quel code HTTP retourner apres DELETE?**
-   - a) 200 OK
-   - b) 201 Created
-   - c) 204 No Content
-   - d) 202 Accepted
-
-**5. VRAI ou FAUX: GET peut avoir un corps de requete.**
-
-**6. Quelle methode est "safe"?**
-   - a) POST
-   - b) PUT
-   - c) GET
-   - d) DELETE
-
-**7. POST est-il idempotent?**
-   - a) Oui
-   - b) Non
-   - c) Parfois
-   - d) Ca depend
-
-**8. Completez: PUT est _______ car plusieurs appels donnent le meme resultat.**
-
-**9. Quel code HTTP pour une creation reussie avec POST?**
-   - a) 200 OK
-   - b) 201 Created
-   - c) 204 No Content
-   - d) 202 Accepted
-
-**10. Si un champ n'est pas fourni dans un PUT, que se passe-t-il?**
-   - a) Erreur
-   - b) Le champ est ignore
-   - c) Le champ est mis a null
-   - d) Le champ garde sa valeur
+POST est la méthode standard pour créer une nouvelle ressource. CREATE n'existe pas comme méthode HTTP.
+</details>
 
 ---
 
-### REPONSES QUIZ 3.3
+**2. Quelle est la différence entre PUT et PATCH?**
+- a) Aucune
+- b) PUT remplace, PATCH modifie partiellement
+- c) PATCH remplace, PUT modifie
+- d) PUT est pour création
 
-1. b) POST
-2. b) PUT remplace, PATCH modifie partiellement
-3. b) GET, PUT, PATCH, DELETE
-4. c) 204 No Content
-5. FAUX (techniquement possible mais deconseille)
-6. c) GET
-7. b) Non
-8. idempotent
-9. b) 201 Created
-10. c) Le champ est mis a null
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : b) PUT remplace, PATCH modifie partiellement**
+
+PUT envoie la ressource complète, PATCH envoie seulement les champs à modifier.
+</details>
+
+---
+
+**3. Quelle méthode est idempotente?**
+- a) POST seulement
+- b) GET, PUT, PATCH, DELETE
+- c) GET seulement
+- d) Aucune
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) GET, PUT, PATCH, DELETE**
+
+Toutes sauf POST sont idempotentes. Exécuter plusieurs fois donne le même résultat.
+</details>
+
+---
+
+**4. Quel code HTTP retourner après DELETE?**
+- a) 200 OK
+- b) 201 Created
+- c) 204 No Content
+- d) 202 Accepted
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) 204 No Content**
+
+204 indique que l'opération a réussi mais qu'il n'y a pas de contenu à retourner.
+</details>
+
+---
+
+**5. VRAI ou FAUX : GET peut avoir un corps de requête.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : FAUX (techniquement possible mais déconseillé)**
+
+Les spécifications HTTP ne l'interdisent pas, mais c'est une mauvaise pratique. Les données doivent être dans l'URL.
+</details>
+
+---
+
+**6. Quelle méthode est "safe"?**
+- a) POST
+- b) PUT
+- c) GET
+- d) DELETE
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) GET**
+
+Une méthode "safe" ne modifie pas les données. Seuls GET et HEAD sont safe.
+</details>
+
+---
+
+**7. POST est-il idempotent?**
+- a) Oui
+- b) Non
+- c) Parfois
+- d) Ça dépend
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Non**
+
+Chaque POST crée une nouvelle ressource. Deux POST identiques créent deux ressources différentes.
+</details>
+
+---
+
+**8. Complétez : PUT est _______ car plusieurs appels donnent le même résultat.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : idempotent**
+
+Envoyer deux fois PUT /leads/123 avec les mêmes données produit le même état final.
+</details>
+
+---
+
+**9. Quel code HTTP pour une création réussie avec POST?**
+- a) 200 OK
+- b) 201 Created
+- c) 204 No Content
+- d) 202 Accepted
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) 201 Created**
+
+201 indique qu'une ressource a été créée. L'en-tête Location devrait contenir l'URL de la nouvelle ressource.
+</details>
+
+---
+
+**10. Si un champ n'est pas fourni dans un PUT, que se passe-t-il?**
+- a) Erreur
+- b) Le champ est ignoré
+- c) Le champ est mis à null
+- d) Le champ garde sa valeur
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) Le champ est mis à null**
+
+PUT remplace toute la ressource. Les champs absents sont considérés comme null. Pour modifier partiellement, utilisez PATCH.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [12 - Annotations Spring MVC](12-annotations-spring-mvc.md) | [14 - Codes de réponse HTTP](14-codes-reponse-http.md) |

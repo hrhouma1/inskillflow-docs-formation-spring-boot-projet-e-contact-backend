@@ -2,13 +2,27 @@
 
 ## Objectifs du chapitre
 
-- Maitriser les annotations de mapping
-- Comprendre les annotations de parametres
-- Utiliser les annotations de reponse
+- Maîtriser les annotations de mapping
+- Comprendre les annotations de paramètres
+- Utiliser les annotations de réponse
 
 ---
 
 ## 1. Annotations de classe
+
+### Diagramme d'ensemble
+
+```mermaid
+graph TB
+    subgraph "Annotations de classe"
+        RC["@RestController<br/>API REST"]
+        C["@Controller<br/>MVC classique"]
+        RM["@RequestMapping<br/>Préfixe URL"]
+    end
+    
+    RC --> JSON[Retourne JSON]
+    C --> VIEW[Retourne des vues]
+```
 
 ### @Controller
 
@@ -40,7 +54,7 @@ public class ApiController {
 
 ### @RequestMapping (niveau classe)
 
-Definit le prefixe d'URL pour tous les endpoints.
+Définit le préfixe d'URL pour tous les endpoints.
 
 ```java
 @RestController
@@ -55,7 +69,26 @@ public class LeadController {
 
 ---
 
-## 2. Annotations de methode
+## 2. Annotations de méthode
+
+### Diagramme des méthodes HTTP
+
+```mermaid
+graph LR
+    subgraph "Annotations"
+        GET["@GetMapping"]
+        POST["@PostMapping"]
+        PUT["@PutMapping"]
+        PATCH["@PatchMapping"]
+        DELETE["@DeleteMapping"]
+    end
+    
+    GET --> G[Lire]
+    POST --> P[Créer]
+    PUT --> PU[Remplacer]
+    PATCH --> PA[Modifier]
+    DELETE --> D[Supprimer]
+```
 
 ### @GetMapping
 
@@ -63,14 +96,14 @@ public class LeadController {
 @GetMapping                    // GET /api/leads
 @GetMapping("/{id}")           // GET /api/leads/123
 @GetMapping("/stats")          // GET /api/leads/stats
-@GetMapping(produces = "application/json")  // Specifie le type de reponse
+@GetMapping(produces = "application/json")  // Spécifie le type de réponse
 ```
 
 ### @PostMapping
 
 ```java
 @PostMapping                   // POST /api/leads
-@PostMapping(consumes = "application/json")  // Specifie le type de requete
+@PostMapping(consumes = "application/json")  // Spécifie le type de requête
 ```
 
 ### @PutMapping
@@ -91,18 +124,29 @@ public class LeadController {
 @DeleteMapping("/{id}")        // DELETE /api/leads/123
 ```
 
-### @RequestMapping (niveau methode)
+### @RequestMapping (niveau méthode)
 
-Version generique (peut specifier la methode HTTP).
+Version générique (peut spécifier la méthode HTTP).
 
 ```java
 @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-// Equivalent a @GetMapping("/{id}")
+// Équivalent à @GetMapping("/{id}")
 ```
 
 ---
 
-## 3. Annotations de parametres
+## 3. Annotations de paramètres
+
+### Diagramme des sources de paramètres
+
+```mermaid
+graph TB
+    REQ[Requête HTTP] --> PV["@PathVariable<br/>/leads/{id}"]
+    REQ --> RP["@RequestParam<br/>?status=NEW"]
+    REQ --> RB["@RequestBody<br/>Corps JSON"]
+    REQ --> RH["@RequestHeader<br/>Authorization"]
+    REQ --> CV["@CookieValue<br/>sessionId"]
+```
 
 ### @PathVariable
 
@@ -132,7 +176,7 @@ public Lead getLead(
 
 ### @RequestParam
 
-Extrait un parametre de query string.
+Extrait un paramètre de query string.
 
 ```java
 // GET /api/leads?status=NEW
@@ -141,14 +185,14 @@ public List<Lead> getLeads(@RequestParam LeadStatus status) {
     return service.findByStatus(status);
 }
 
-// Parametre optionnel
+// Paramètre optionnel
 @GetMapping
 public List<Lead> getLeads(
         @RequestParam(required = false) LeadStatus status) {
     return status != null ? service.findByStatus(status) : service.findAll();
 }
 
-// Valeur par defaut
+// Valeur par défaut
 @GetMapping
 public Page<Lead> getLeads(
         @RequestParam(defaultValue = "0") int page,
@@ -165,7 +209,7 @@ public List<Lead> search(@RequestParam("q") String query) {
 
 ### @RequestBody
 
-Extrait le corps JSON de la requete.
+Extrait le corps JSON de la requête.
 
 ```java
 @PostMapping
@@ -182,7 +226,7 @@ public Lead create(@RequestBody @Valid ContactFormRequest request) {
 
 ### @RequestHeader
 
-Extrait un en-tete HTTP.
+Extrait un en-tête HTTP.
 
 ```java
 @GetMapping
@@ -215,7 +259,7 @@ Active la validation du DTO.
 ```java
 @PostMapping
 public Lead create(@RequestBody @Valid ContactFormRequest request) {
-    // Si validation echoue, exception MethodArgumentNotValidException
+    // Si validation échoue, exception MethodArgumentNotValidException
     return service.create(request);
 }
 ```
@@ -233,11 +277,11 @@ public Lead create(@RequestBody @Validated(OnCreate.class) Request request) {
 
 ---
 
-## 5. Annotations de reponse
+## 5. Annotations de réponse
 
 ### @ResponseStatus
 
-Definit le code HTTP de la reponse.
+Définit le code HTTP de la réponse.
 
 ```java
 @PostMapping
@@ -255,7 +299,7 @@ public void delete(@PathVariable Long id) {
 
 ### @ResponseBody
 
-Indique que la valeur de retour est le corps de la reponse (inclus dans @RestController).
+Indique que la valeur de retour est le corps de la réponse (inclus dans @RestController).
 
 ```java
 @Controller
@@ -276,11 +320,11 @@ public class MixedController {
 
 ---
 
-## 6. Annotations de securite
+## 6. Annotations de sécurité
 
 ### @PreAuthorize
 
-Verifie les permissions avant l'execution.
+Vérifie les permissions avant l'exécution.
 
 ```java
 @GetMapping
@@ -298,7 +342,7 @@ public void delete(@PathVariable Long id) {
 
 ### @Secured
 
-Version simplifiee.
+Version simplifiée.
 
 ```java
 @GetMapping
@@ -314,7 +358,7 @@ public List<Lead> getLeads() {
 
 ### @CrossOrigin
 
-Configure CORS pour un controller ou une methode.
+Configure CORS pour un controller ou une méthode.
 
 ```java
 @RestController
@@ -323,7 +367,7 @@ public class ApiController {
     // ...
 }
 
-// Ou par methode
+// Ou par méthode
 @GetMapping
 @CrossOrigin(origins = "*", maxAge = 3600)
 public List<Lead> getLeads() {
@@ -333,7 +377,7 @@ public List<Lead> getLeads() {
 
 ### @ExceptionHandler
 
-Gere les exceptions dans un controller.
+Gère les exceptions dans un controller.
 
 ```java
 @RestController
@@ -354,34 +398,74 @@ public class LeadController {
 
 ---
 
-## 8. Resume des annotations
+## 8. Résumé des annotations
+
+### Tableau récapitulatif
+
+```mermaid
+graph TB
+    subgraph "Classe"
+        RC["@RestController"]
+        RM["@RequestMapping"]
+    end
+    
+    subgraph "Méthode"
+        GM["@GetMapping"]
+        PM["@PostMapping"]
+        RS["@ResponseStatus"]
+    end
+    
+    subgraph "Paramètre"
+        PV["@PathVariable"]
+        RP["@RequestParam"]
+        RB["@RequestBody"]
+        V["@Valid"]
+    end
+```
 
 | Annotation | Niveau | Usage |
 |------------|--------|-------|
 | @RestController | Classe | Controller REST |
-| @RequestMapping | Classe/Methode | Prefixe URL |
-| @GetMapping | Methode | GET |
-| @PostMapping | Methode | POST |
-| @PutMapping | Methode | PUT |
-| @PatchMapping | Methode | PATCH |
-| @DeleteMapping | Methode | DELETE |
-| @PathVariable | Parametre | Variable URL |
-| @RequestParam | Parametre | Query string |
-| @RequestBody | Parametre | Corps JSON |
-| @RequestHeader | Parametre | En-tete HTTP |
-| @Valid | Parametre | Validation |
-| @ResponseStatus | Methode | Code HTTP |
-| @PreAuthorize | Methode | Securite |
-| @CrossOrigin | Classe/Methode | CORS |
+| @RequestMapping | Classe/Méthode | Préfixe URL |
+| @GetMapping | Méthode | GET |
+| @PostMapping | Méthode | POST |
+| @PutMapping | Méthode | PUT |
+| @PatchMapping | Méthode | PATCH |
+| @DeleteMapping | Méthode | DELETE |
+| @PathVariable | Paramètre | Variable URL |
+| @RequestParam | Paramètre | Query string |
+| @RequestBody | Paramètre | Corps JSON |
+| @RequestHeader | Paramètre | En-tête HTTP |
+| @Valid | Paramètre | Validation |
+| @ResponseStatus | Méthode | Code HTTP |
+| @PreAuthorize | Méthode | Sécurité |
+| @CrossOrigin | Classe/Méthode | CORS |
 
 ---
 
-## 9. Points cles a retenir
+## 9. Points clés à retenir
+
+```mermaid
+mindmap
+  root((Spring MVC))
+    Classe
+      @RestController
+      @RequestMapping
+    Méthode
+      @GetMapping
+      @PostMapping
+      @ResponseStatus
+    Paramètre
+      @PathVariable
+      @RequestParam
+      @RequestBody
+      @Valid
+```
 
 1. **@RestController** = @Controller + @ResponseBody
-2. **@RequestMapping** definit le prefixe d'URL
+2. **@RequestMapping** définit le préfixe d'URL
 3. **@PathVariable** pour les variables dans l'URL
-4. **@RequestParam** pour les parametres de query
+4. **@RequestParam** pour les paramètres de query
 5. **@RequestBody** pour le corps JSON
 6. **@Valid** active la validation
 
@@ -390,69 +474,159 @@ public class LeadController {
 ## QUIZ 3.2 - Annotations Spring MVC
 
 **1. Quelle annotation combine @Controller et @ResponseBody?**
-   - a) @ApiController
-   - b) @RestController
-   - c) @WebController
-   - d) @JsonController
+- a) @ApiController
+- b) @RestController
+- c) @WebController
+- d) @JsonController
 
-**2. Quelle annotation extrait une variable de l'URL /api/leads/123?**
-   - a) @RequestParam
-   - b) @PathVariable
-   - c) @RequestBody
-   - d) @UrlVariable
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Quelle annotation extrait le corps JSON?**
-   - a) @RequestParam
-   - b) @PathVariable
-   - c) @RequestBody
-   - d) @JsonBody
+**Réponse : b) @RestController**
 
-**4. Comment rendre un parametre optionnel avec @RequestParam?**
-   - a) @RequestParam(optional = true)
-   - b) @RequestParam(required = false)
-   - c) @RequestParam(nullable = true)
-   - d) @Optional @RequestParam
-
-**5. VRAI ou FAUX: @GetMapping est equivalent a @RequestMapping(method = GET).**
-
-**6. Quelle annotation active la validation du DTO?**
-   - a) @Validate
-   - b) @Valid
-   - c) @Check
-   - d) @Verified
-
-**7. Comment specifier un code 201 pour une creation?**
-   - a) @ResponseCode(201)
-   - b) @ResponseStatus(HttpStatus.CREATED)
-   - c) @HttpStatus(201)
-   - d) @Status(CREATED)
-
-**8. Completez: @RequestParam extrait les parametres de la _______ string.**
-
-**9. Quelle annotation pour securiser une methode?**
-   - a) @Secure
-   - b) @PreAuthorize
-   - c) @Protected
-   - d) @Auth
-
-**10. Comment donner une valeur par defaut a un @RequestParam?**
-   - a) @RequestParam = "default"
-   - b) @RequestParam(default = "value")
-   - c) @RequestParam(defaultValue = "value")
-   - d) @DefaultValue("value") @RequestParam
+@RestController est une méta-annotation qui combine @Controller et @ResponseBody, permettant aux méthodes de retourner directement des données JSON.
+</details>
 
 ---
 
-### REPONSES QUIZ 3.2
+**2. Quelle annotation extrait une variable de l'URL /api/leads/123?**
+- a) @RequestParam
+- b) @PathVariable
+- c) @RequestBody
+- d) @UrlVariable
 
-1. b) @RestController
-2. b) @PathVariable
-3. c) @RequestBody
-4. b) @RequestParam(required = false)
-5. VRAI
-6. b) @Valid
-7. b) @ResponseStatus(HttpStatus.CREATED)
-8. query
-9. b) @PreAuthorize
-10. c) @RequestParam(defaultValue = "value")
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : b) @PathVariable**
+
+@PathVariable extrait des valeurs depuis le chemin de l'URL. Pour /api/leads/{id}, @PathVariable Long id extrait 123.
+</details>
+
+---
+
+**3. Quelle annotation extrait le corps JSON?**
+- a) @RequestParam
+- b) @PathVariable
+- c) @RequestBody
+- d) @JsonBody
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @RequestBody**
+
+@RequestBody désérialise automatiquement le JSON du corps de la requête en objet Java.
+</details>
+
+---
+
+**4. Comment rendre un paramètre optionnel avec @RequestParam?**
+- a) @RequestParam(optional = true)
+- b) @RequestParam(required = false)
+- c) @RequestParam(nullable = true)
+- d) @Optional @RequestParam
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @RequestParam(required = false)**
+
+Par défaut, required = true. Avec required = false, le paramètre est optionnel et vaut null s'il n'est pas fourni.
+</details>
+
+---
+
+**5. VRAI ou FAUX : @GetMapping est équivalent à @RequestMapping(method = GET).**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : VRAI**
+
+@GetMapping est un raccourci pour @RequestMapping(method = RequestMethod.GET). De même pour @PostMapping, @PutMapping, etc.
+</details>
+
+---
+
+**6. Quelle annotation active la validation du DTO?**
+- a) @Validate
+- b) @Valid
+- c) @Check
+- d) @Verified
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Valid**
+
+@Valid active la validation Bean Validation (JSR 380) sur le paramètre annoté.
+</details>
+
+---
+
+**7. Comment spécifier un code 201 pour une création?**
+- a) @ResponseCode(201)
+- b) @ResponseStatus(HttpStatus.CREATED)
+- c) @HttpStatus(201)
+- d) @Status(CREATED)
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @ResponseStatus(HttpStatus.CREATED)**
+
+@ResponseStatus définit le code HTTP de la réponse. HttpStatus.CREATED correspond au code 201.
+</details>
+
+---
+
+**8. Complétez : @RequestParam extrait les paramètres de la _______ string.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : query**
+
+La query string est la partie après "?" dans l'URL : /api/leads?status=NEW
+</details>
+
+---
+
+**9. Quelle annotation pour sécuriser une méthode?**
+- a) @Secure
+- b) @PreAuthorize
+- c) @Protected
+- d) @Auth
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @PreAuthorize**
+
+@PreAuthorize permet de vérifier les permissions avant l'exécution de la méthode avec des expressions SpEL.
+</details>
+
+---
+
+**10. Comment donner une valeur par défaut à un @RequestParam?**
+- a) @RequestParam = "default"
+- b) @RequestParam(default = "value")
+- c) @RequestParam(defaultValue = "value")
+- d) @DefaultValue("value") @RequestParam
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @RequestParam(defaultValue = "value")**
+
+defaultValue spécifie la valeur à utiliser si le paramètre n'est pas fourni dans la requête.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [11 - Principes REST](11-principes-rest.md) | [13 - Méthodes HTTP](13-methodes-http.md) |
