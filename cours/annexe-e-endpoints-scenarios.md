@@ -282,6 +282,52 @@ sequenceDiagram
     LC-->>F: 200 OK { content: [...] }
 ```
 
+#### Diagramme complet (toutes les étapes)
+
+<details>
+<summary>Cliquez pour voir le diagramme complet</summary>
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant F as Frontend
+    participant JAF as JwtAuthFilter
+    participant JS as JwtService
+    participant UDS as UserDetailsService
+    participant DB as PostgreSQL
+    participant SC as SecurityConfig
+    participant LC as LeadController
+    
+    A->>F: Clique sur "Voir les leads"
+    F->>F: Récupère le token du localStorage
+    F->>JAF: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
+    
+    JAF->>JAF: jwt = header.substring(7)
+    JAF->>JS: extractUsername(jwt)
+    JS-->>JAF: "admin@test.com"
+    
+    JAF->>UDS: loadUserByUsername("admin@test.com")
+    UDS->>DB: SELECT * FROM users WHERE email=?
+    DB-->>UDS: User(role=ADMIN)
+    UDS-->>JAF: User
+    
+    JAF->>JS: isTokenValid(jwt, user)
+    JS-->>JAF: true ✅
+    
+    JAF->>JAF: SecurityContext.setAuthentication(user, [ROLE_ADMIN])
+    JAF->>SC: filterChain.doFilter()
+    
+    SC->>SC: /api/admin/** → hasRole('ADMIN')? ✅
+    SC->>LC: Accès autorisé
+    
+    LC->>DB: SELECT * FROM leads ORDER BY created_at DESC
+    DB-->>LC: Liste des leads
+    LC-->>F: 200 OK { content: [...], totalPages: 5 }
+    F-->>A: Affiche le tableau des leads
+```
+
+</details>
+
 **Requête HTTP** :
 ```http
 GET /api/admin/leads?page=0&size=20&sort=createdAt,desc HTTP/1.1

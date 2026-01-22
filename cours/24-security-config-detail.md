@@ -957,6 +957,57 @@ sequenceDiagram
     AC-->>C: 200 OK { token: "eyJ...", role: "ADMIN" }
 ```
 
+#### Diagramme complet (toutes les étapes)
+
+<details>
+<summary>Cliquez pour voir le diagramme complet</summary>
+
+```mermaid
+sequenceDiagram
+    participant Client as Client
+    participant SC as SecurityConfig
+    participant AC as AuthController
+    participant AM as AuthenticationManager
+    participant DAP as DaoAuthenticationProvider
+    participant UDS as UserDetailsService
+    participant UR as UserRepository
+    participant PE as PasswordEncoder
+    participant JS as JwtService
+    participant DB as PostgreSQL
+    
+    Note over Client,SC: ÉTAPE 1-2 : La requête arrive
+    Client->>SC: POST /api/auth/login
+    SC->>SC: /api/auth/** → permitAll() ✅
+    SC->>AC: Requête autorisée
+    
+    Note over AC,AM: ÉTAPE 3-4 : AuthController appelle authenticate
+    AC->>AM: authenticationManager.authenticate(<br/>"admin@test.com", "admin123")
+    AM->>DAP: authenticate()
+    
+    Note over DAP,UDS: ÉTAPE 5-6 : Chargement de l'utilisateur
+    DAP->>UDS: loadUserByUsername("admin@test.com")
+    UDS->>UR: findByEmail("admin@test.com")
+    UR->>DB: SELECT * FROM users WHERE email='admin@test.com'
+    DB-->>UR: User(password_hash, role=ADMIN)
+    UR-->>UDS: User
+    UDS-->>DAP: User (implements UserDetails)
+    
+    Note over DAP,PE: ÉTAPE 7-8 : Vérification du mot de passe
+    DAP->>PE: matches("admin123", "$2a$10$hash...")
+    PE-->>DAP: true ✅
+    DAP-->>AM: Authentication SUCCESS
+    AM-->>AC: Authentication(user, [ROLE_ADMIN])
+    
+    Note over AC,JS: ÉTAPE 9-10 : Génération du JWT
+    AC->>JS: jwtService.generateToken(user)
+    JS-->>AC: "eyJhbGciOiJIUzI1NiJ9..."
+    
+    Note over AC,Client: ÉTAPE 11 : Réponse au client
+    AC-->>Client: 200 OK { token: "eyJ...", role: "ADMIN" }
+```
+
+</details>
+
 ### Code correspondant dans notre projet
 
 **1. AuthController.java** (qui appelle `authenticationManager.authenticate`)
@@ -1131,6 +1182,71 @@ sequenceDiagram
     SC->>LC: Accès autorisé
     LC-->>C: 200 OK [leads...]
 ```
+
+#### Diagramme complet (toutes les étapes)
+
+<details>
+<summary>Cliquez pour voir le diagramme complet</summary>
+
+```mermaid
+sequenceDiagram
+    participant Client as Client
+    participant SF as SecurityFilterChain
+    participant JAF as JwtAuthFilter
+    participant JS as JwtService
+    participant UDS as UserDetailsService
+    participant UR as UserRepository
+    participant SC as SecurityConfig
+    participant LC as LeadController
+    participant DB as PostgreSQL
+    
+    Note over Client,SF: ÉTAPE 1 : Requête avec JWT
+    Client->>SF: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
+    
+    Note over SF,JAF: ÉTAPE 2 : JwtAuthFilter.doFilterInternal()
+    SF->>JAF: doFilterInternal(request, response, filterChain)
+    
+    Note over JAF: ÉTAPE 3 : Extraction du token
+    JAF->>JAF: authHeader = request.getHeader("Authorization")<br/>jwt = authHeader.substring(7)
+    
+    Note over JAF,JS: ÉTAPE 4 : Extraction de l'email
+    JAF->>JS: jwtService.extractUsername(jwt)
+    JS->>JS: Décode le JWT, extrait le "subject"
+    JS-->>JAF: "admin@test.com"
+    
+    Note over JAF,UDS: ÉTAPE 5 : Chargement de l'utilisateur
+    JAF->>UDS: userDetailsService.loadUserByUsername("admin@test.com")
+    UDS->>UR: findByEmail("admin@test.com")
+    UR->>DB: SELECT * FROM users WHERE email='admin@test.com'
+    DB-->>UR: User
+    UR-->>UDS: User
+    UDS-->>JAF: UserDetails (notre User)
+    
+    Note over JAF,JS: ÉTAPE 6 : Validation du token
+    JAF->>JS: jwtService.isTokenValid(jwt, userDetails)
+    JS->>JS: Vérifie signature + expiration
+    JS-->>JAF: true ✅
+    
+    Note over JAF: ÉTAPE 7 : Création de l'Authentication
+    JAF->>JAF: UsernamePasswordAuthenticationToken authToken
+    JAF->>JAF: SecurityContextHolder.setAuthentication(authToken)
+    
+    Note over JAF,SC: ÉTAPE 8 : Continue la chaîne
+    JAF->>SC: filterChain.doFilter()
+    
+    Note over SC: ÉTAPE 9 : Vérification des règles
+    SC->>SC: "/api/admin/**" → hasRole("ADMIN")<br/>User a ROLE_ADMIN? ✅
+    
+    Note over SC,LC: ÉTAPE 10 : Accès autorisé
+    SC->>LC: Appel de la méthode du Controller
+    LC->>DB: Récupère les leads
+    DB-->>LC: Liste des leads
+    
+    Note over LC,Client: ÉTAPE 11 : Réponse
+    LC-->>Client: 200 OK [{ lead1 }, { lead2 }, ...]
+```
+
+</details>
 
 ### Code correspondant
 
