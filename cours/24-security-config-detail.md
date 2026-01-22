@@ -1387,39 +1387,65 @@ sequenceDiagram
 
 ### Schéma complet des appels
 
+#### A. Au démarrage de l'application
+
 ```mermaid
 graph TB
-    subgraph "Au démarrage (Spring Boot crée les Beans)"
-        START[Spring Boot démarre] --> SC[SecurityConfig]
-        SC --> SFC["@Bean SecurityFilterChain"]
-        SC --> PE["@Bean PasswordEncoder"]
-        SC --> AP["@Bean AuthenticationProvider"]
-        SC --> AM["@Bean AuthenticationManager"]
-        
-        START --> UDC[UserDetailsConfig]
-        UDC --> UDS["@Bean UserDetailsService"]
-        
-        AP -.->|"injecte"| UDS
-        AP -.->|"injecte"| PE
-    end
+    A["Spring Boot démarre"]
+    A --> B["Crée SecurityConfig"]
+    B --> C["@Bean SecurityFilterChain"]
+    B --> D["@Bean PasswordEncoder"]
+    B --> E["@Bean AuthenticationProvider"]
+    B --> F["@Bean AuthenticationManager"]
     
-    subgraph "À chaque requête"
-        REQ[Requête HTTP] --> JAF[JwtAuthFilter.doFilterInternal]
-        JAF -->|"Si JWT présent"| JS[JwtService.extractUsername]
-        JAF -->|"Si JWT présent"| UDS2[UserDetailsService.loadUserByUsername]
-        UDS2 --> UR[UserRepository.findByEmail]
-        UR --> DB[(PostgreSQL)]
-        JAF -->|"Si JWT valide"| CTX[SecurityContextHolder.setAuthentication]
-    end
+    A --> G["Crée UserDetailsConfig"]
+    G --> H["@Bean UserDetailsService"]
     
-    subgraph "Login spécifiquement"
-        LOGIN[POST /api/auth/login] --> AC[AuthController.login]
-        AC --> AM2[AuthenticationManager.authenticate]
-        AM2 --> AP2[DaoAuthenticationProvider]
-        AP2 --> UDS3[UserDetailsService.loadUserByUsername]
-        AP2 --> PE2[PasswordEncoder.matches]
-        AC --> JS2[JwtService.generateToken]
-    end
+    E -.->|"injecte"| H
+    E -.->|"injecte"| D
+    
+    style A fill:#4CAF50,color:#fff
+    style B fill:#2196F3,color:#fff
+    style G fill:#2196F3,color:#fff
+```
+
+#### B. À chaque requête avec JWT
+
+```mermaid
+graph TB
+    A["Requête HTTP arrive"]
+    A --> B["JwtAuthFilter.doFilterInternal()"]
+    B --> C["JwtService.extractUsername(jwt)"]
+    C --> D["UserDetailsService.loadUserByUsername()"]
+    D --> E["UserRepository.findByEmail()"]
+    E --> F["PostgreSQL"]
+    D --> G["JwtService.isTokenValid()"]
+    G --> H["SecurityContextHolder.setAuthentication()"]
+    
+    style A fill:#FF9800,color:#fff
+    style B fill:#E91E63,color:#fff
+    style H fill:#4CAF50,color:#fff
+```
+
+#### C. Lors du LOGIN
+
+```mermaid
+graph TB
+    A["POST /api/auth/login"]
+    A --> B["AuthController.login()"]
+    B --> C["AuthenticationManager.authenticate()"]
+    C --> D["DaoAuthenticationProvider"]
+    D --> E["UserDetailsService.loadUserByUsername()"]
+    D --> F["PasswordEncoder.matches()"]
+    F --> G{Mot de passe OK?}
+    G -->|Oui| H["JwtService.generateToken()"]
+    H --> I["Retourne le JWT"]
+    G -->|Non| J["401 Unauthorized"]
+    
+    style A fill:#2196F3,color:#fff
+    style H fill:#4CAF50,color:#fff
+    style I fill:#4CAF50,color:#fff
+    style J fill:#f44336,color:#fff
 ```
 
 ---
