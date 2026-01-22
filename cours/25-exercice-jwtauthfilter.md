@@ -132,7 +132,45 @@ public class JwtAuthFilter extends ______ {  // ÉTAPE 1
 
 ## Étape 1 : Hériter de OncePerRequestFilter
 
-### Pourquoi OncePerRequestFilter?
+### Mini cours : C'est quoi un Filtre?
+
+En Java web, un **filtre** est un composant qui intercepte les requêtes HTTP **avant** qu'elles n'atteignent le Controller. C'est comme un gardien à l'entrée d'un bâtiment.
+
+```mermaid
+graph LR
+    A["Requête HTTP"] --> B["Filtre 1"]
+    B --> C["Filtre 2"]
+    C --> D["Filtre 3"]
+    D --> E["Controller"]
+    
+    style B fill:#FF9800,color:#fff
+    style C fill:#FF9800,color:#fff
+    style D fill:#FF9800,color:#fff
+```
+
+**Problème** : Parfois, une même requête peut passer plusieurs fois par le même filtre (à cause des redirections internes). Pour éviter ça, Spring fournit `OncePerRequestFilter`.
+
+### Mini cours : OncePerRequestFilter
+
+`OncePerRequestFilter` est une classe abstraite de Spring qui garantit que votre filtre s'exécute **exactement une fois** par requête, peu importe les redirections.
+
+| Classe | Comportement |
+|--------|--------------|
+| `Filter` (interface Java) | Peut s'exécuter plusieurs fois |
+| `OncePerRequestFilter` (Spring) | S'exécute **une seule fois** |
+
+Quand vous héritez de `OncePerRequestFilter`, vous devez implémenter la méthode `doFilterInternal()` :
+
+```java
+@Override
+protected void doFilterInternal(
+    HttpServletRequest request,   // La requête entrante
+    HttpServletResponse response, // La réponse à renvoyer
+    FilterChain filterChain       // La chaîne de filtres
+) throws ServletException, IOException {
+    // Votre logique ici
+}
+```
 
 ```mermaid
 graph TB
@@ -144,7 +182,9 @@ graph TB
     style A fill:#4CAF50,color:#fff
 ```
 
-### Question
+---
+
+### Question à compléter
 
 ```java
 public class JwtAuthFilter extends ______ {
@@ -174,19 +214,74 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 ## Étape 2 : Injecter les dépendances
 
-### De quoi avons-nous besoin?
+### Mini cours : L'injection de dépendances
+
+En Spring, au lieu de créer vos objets avec `new`, vous demandez à Spring de vous les fournir. C'est l'**injection de dépendances**.
+
+**Sans injection (mauvais)** :
+```java
+public class JwtAuthFilter {
+    private JwtService jwtService = new JwtService(); // ❌ Vous créez l'objet
+}
+```
+
+**Avec injection (bon)** :
+```java
+public class JwtAuthFilter {
+    private final JwtService jwtService; // ✅ Spring fournit l'objet
+    
+    public JwtAuthFilter(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
+}
+```
+
+### Mini cours : @RequiredArgsConstructor de Lombok
+
+`@RequiredArgsConstructor` génère automatiquement un constructeur avec tous les champs `final`. Ça évite d'écrire le constructeur à la main.
+
+```java
+@RequiredArgsConstructor  // Lombok génère le constructeur
+public class JwtAuthFilter {
+    private final JwtService jwtService;        // Injecté automatiquement
+    private final UserDetailsService userDetailsService; // Injecté automatiquement
+}
+```
+
+Équivalent à :
+```java
+public class JwtAuthFilter {
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
+    
+    // Constructeur généré par Lombok
+    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+    }
+}
+```
+
+### De quoi notre filtre a-t-il besoin?
 
 ```mermaid
 graph TB
     A["JwtAuthFilter a besoin de:"]
-    A --> B["JwtService<br/>Pour décoder/valider le JWT"]
-    A --> C["UserDetailsService<br/>Pour charger l'utilisateur"]
+    A --> B["JwtService<br/>Pour décoder le JWT<br/>et extraire l'email"]
+    A --> C["UserDetailsService<br/>Pour charger l'utilisateur<br/>depuis la base de données"]
     
     style B fill:#2196F3,color:#fff
     style C fill:#FF9800,color:#fff
 ```
 
-### Question
+| Service | Rôle |
+|---------|------|
+| `JwtService` | Décoder le JWT, extraire l'email, valider le token |
+| `UserDetailsService` | Charger l'utilisateur depuis PostgreSQL |
+
+---
+
+### Question à compléter
 
 ```java
 private final JwtService ______;
@@ -203,7 +298,9 @@ private final JwtService jwtService;
 private final UserDetailsService userDetailsService;
 ```
 
-Grâce à `@RequiredArgsConstructor` de Lombok, Spring injectera automatiquement ces dépendances via le constructeur.
+- Les noms suivent la convention **camelCase**
+- `final` = la référence ne peut pas changer après l'injection
+- Grâce à `@RequiredArgsConstructor`, Spring injecte automatiquement ces services
 
 </details>
 
@@ -211,19 +308,65 @@ Grâce à `@RequiredArgsConstructor` de Lombok, Spring injectera automatiquement
 
 ## Étape 3 : Récupérer le header Authorization
 
-### Comment ça fonctionne?
+### Mini cours : Les headers HTTP
 
-```mermaid
-graph LR
-    A["Requête HTTP"] --> B["Headers"]
-    B --> C["Authorization: Bearer eyJ..."]
-    B --> D["Content-Type: application/json"]
-    B --> E["Accept: */*"]
-    
-    style C fill:#4CAF50,color:#fff
+Une requête HTTP contient plusieurs parties :
+
+```
+┌─────────────────────────────────────────────────┐
+│ REQUÊTE HTTP                                     │
+├─────────────────────────────────────────────────┤
+│ Ligne de requête: GET /api/admin/leads HTTP/1.1 │
+├─────────────────────────────────────────────────┤
+│ HEADERS (en-têtes):                             │
+│   Authorization: Bearer eyJhbGciOi...           │ ← Le JWT est ici!
+│   Content-Type: application/json                │
+│   Accept: */*                                   │
+│   Host: localhost:8080                          │
+├─────────────────────────────────────────────────┤
+│ BODY (corps): { ... } (vide pour GET)           │
+└─────────────────────────────────────────────────┘
 ```
 
-### Question
+### Mini cours : Le header Authorization
+
+Le standard HTTP définit un header spécial appelé `Authorization` pour transmettre les informations d'authentification.
+
+Pour JWT, le format est : `Bearer <token>`
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSJ9.xxx
+               ^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               Schéma                    Le token JWT
+```
+
+- **Bearer** = type d'authentification (porteur de token)
+- **eyJ...** = le token JWT encodé en Base64
+
+### Mini cours : HttpServletRequest
+
+L'objet `request` (de type `HttpServletRequest`) représente la requête HTTP. Il a plusieurs méthodes utiles :
+
+| Méthode | Usage |
+|---------|-------|
+| `getHeader("nom")` | Récupérer un header HTTP |
+| `getParameter("nom")` | Récupérer un paramètre de l'URL (?nom=valeur) |
+| `getMethod()` | GET, POST, PUT, DELETE |
+| `getRequestURI()` | Le chemin (/api/admin/leads) |
+
+```mermaid
+graph TB
+    A["HttpServletRequest"]
+    A --> B["getHeader('Authorization')<br/>→ 'Bearer eyJ...'"]
+    A --> C["getMethod()<br/>→ 'GET'"]
+    A --> D["getRequestURI()<br/>→ '/api/admin/leads'"]
+    
+    style B fill:#4CAF50,color:#fff
+```
+
+---
+
+### Question à compléter
 
 ```java
 final String authHeader = request.______("______");
@@ -245,9 +388,9 @@ final String authHeader = request.______("______");
 final String authHeader = request.getHeader("Authorization");
 ```
 
-- `getHeader()` récupère un header HTTP
-- Le header s'appelle `Authorization` (standard HTTP)
-- Sa valeur ressemble à : `Bearer eyJhbGciOiJIUzI1NiJ9...`
+- `getHeader()` récupère un header HTTP (pas `getParameter` qui est pour les query strings)
+- Le header s'appelle `Authorization` (pas "Auth" ni "Bearer")
+- Résultat : `"Bearer eyJhbGciOiJIUzI1NiJ9..."` ou `null` si absent
 
 </details>
 
@@ -255,14 +398,54 @@ final String authHeader = request.getHeader("Authorization");
 
 ## Étape 4 : Vérifier le header
 
-### Pourquoi cette vérification?
+### Mini cours : Pourquoi vérifier?
+
+Toutes les requêtes ne contiennent pas forcément un JWT :
+
+| Type de requête | Header Authorization |
+|-----------------|---------------------|
+| `POST /api/contact` (public) | Absent (null) |
+| `GET /api/admin/leads` (protégé) | `Bearer eyJ...` |
+| Requête invalide | `Basic dXNlcjpwYXNz` (autre format) |
+
+Notre filtre doit gérer tous ces cas sans planter.
+
+### Mini cours : La méthode startsWith()
+
+La méthode `startsWith()` de String vérifie si une chaîne commence par un préfixe :
+
+```java
+"Bearer eyJ...".startsWith("Bearer ")  // → true
+"Basic xyz".startsWith("Bearer ")      // → false
+"bearer eyJ...".startsWith("Bearer ") // → false (sensible à la casse!)
+```
+
+### Mini cours : Le pattern "early return"
+
+Quand une condition n'est pas remplie, on sort de la méthode immédiatement avec `return`. C'est le pattern **early return** :
+
+```java
+// ❌ Sans early return (imbrication complexe)
+if (authHeader != null) {
+    if (authHeader.startsWith("Bearer ")) {
+        // ... 50 lignes de code ...
+    }
+}
+
+// ✅ Avec early return (plus lisible)
+if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    filterChain.doFilter(request, response);
+    return;  // On sort immédiatement
+}
+// ... code principal ici ...
+```
 
 ```mermaid
 graph TB
     A["Header Authorization"]
-    A --> B{"Existe?"}
-    B -->|Non| C["Pas de JWT<br/>→ Continuer sans auth"]
-    B -->|Oui| D{"Commence par<br/>'Bearer '?"}
+    A --> B{"authHeader == null?"}
+    B -->|Oui| C["Pas de header<br/>→ Continuer sans auth"]
+    B -->|Non| D{"startsWith('Bearer ')?"}
     D -->|Non| C
     D -->|Oui| E["JWT présent!<br/>→ Continuer le traitement"]
     
@@ -270,7 +453,9 @@ graph TB
     style E fill:#4CAF50,color:#fff
 ```
 
-### Question
+---
+
+### Question à compléter
 
 ```java
 if (______ == null || !authHeader.______("Bearer ")) {
@@ -291,9 +476,10 @@ if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 }
 ```
 
-- On vérifie si `authHeader` est `null` (pas de header)
-- On vérifie si ça commence par `"Bearer "` (avec l'espace!)
-- Si non, on continue sans authentification
+- `authHeader == null` : vérifie si le header est absent
+- `!authHeader.startsWith("Bearer ")` : vérifie que ça commence par "Bearer " (avec l'espace!)
+- `||` : opérateur OU logique - si l'une des conditions est vraie, on entre dans le if
+- `return` : on sort de la méthode immédiatement
 
 </details>
 
@@ -301,16 +487,60 @@ if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 
 ## Étape 5 : Extraire le JWT
 
-### Structure du header
+### Mini cours : La méthode substring()
+
+La méthode `substring()` extrait une partie d'une chaîne de caractères.
+
+```java
+String texte = "Bonjour le monde";
+
+texte.substring(0)    // → "Bonjour le monde" (tout)
+texte.substring(8)    // → "le monde" (à partir de l'index 8)
+texte.substring(0, 7) // → "Bonjour" (de l'index 0 à 6)
+```
+
+**Important** : Les index commencent à 0 en Java!
+
+### Mini cours : Compter les caractères
+
+```
+Chaîne:  "Bearer eyJhbGci..."
+Index:    0123456789...
+
+B = index 0
+e = index 1
+a = index 2
+r = index 3
+e = index 4
+r = index 5
+  = index 6 (espace)
+e = index 7 (début du JWT!)
+```
+
+Donc `"Bearer "` fait **7 caractères** (n'oubliez pas l'espace!).
+
+### Visualisation
 
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSJ9.xxx
-               ↑      ↑
-               |      |
-            Index 0   Index 7 (après "Bearer ")
+               ├─────┤├──────────────────────────────────────────────────────────┤
+               7 chars              Le JWT qu'on veut extraire
+               
+authHeader.substring(7) → "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSJ9.xxx"
 ```
 
-### Question
+```mermaid
+graph LR
+    A["'Bearer eyJhbG...'"] --> B["substring(7)"]
+    B --> C["'eyJhbG...'"]
+    
+    style A fill:#FF9800,color:#fff
+    style C fill:#4CAF50,color:#fff
+```
+
+---
+
+### Question à compléter
 
 ```java
 final String jwt = authHeader.______(7);
@@ -325,9 +555,14 @@ final String jwt = authHeader.______(7);
 final String jwt = authHeader.substring(7);
 ```
 
-- `"Bearer "` fait 7 caractères (B-e-a-r-e-r-espace)
-- `substring(7)` retourne tout à partir de l'index 7
-- Résultat : le JWT pur sans "Bearer "
+- `substring(7)` prend tout à partir de l'index 7
+- `"Bearer "` = 7 caractères (B-e-a-r-e-r-espace)
+- Résultat : le JWT pur sans le préfixe "Bearer "
+
+**Exemple** :
+```java
+"Bearer eyJabc123".substring(7) // → "eyJabc123"
+```
 
 </details>
 
@@ -335,21 +570,71 @@ final String jwt = authHeader.substring(7);
 
 ## Étape 6 : Extraire l'email du JWT
 
-### Structure d'un JWT
+### Mini cours : Structure d'un JWT
+
+Un JWT (JSON Web Token) est composé de **3 parties** séparées par des points :
+
+```
+eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkB0ZXN0LmNvbSIsImlhdCI6MTcwNTMxMjAwMH0.xxxSignature
+├─────────────────────┤├──────────────────────────────────────────────────────────────┤├───────────┤
+       HEADER                              PAYLOAD                                    SIGNATURE
+```
+
+**1. Header** (en-tête) - Informations sur l'algorithme :
+```json
+{
+  "alg": "HS256",
+  "typ": "JWT"
+}
+```
+
+**2. Payload** (données) - Les informations de l'utilisateur :
+```json
+{
+  "sub": "admin@test.com",   ← L'email est ici! (subject)
+  "iat": 1705312000,         ← Date de création
+  "exp": 1705398400          ← Date d'expiration
+}
+```
+
+**3. Signature** - Pour vérifier que le token n'a pas été modifié.
+
+### Mini cours : Le champ "sub" (subject)
+
+Par convention, le champ `sub` (subject) contient l'identifiant unique de l'utilisateur. Dans notre cas, c'est l'email.
 
 ```mermaid
-graph LR
-    A["JWT"] --> B["Header<br/>(algorithme)"]
-    A --> C["Payload<br/>(données)"]
+graph TB
+    A["JWT décodé"]
+    A --> B["Header: alg, typ"]
+    A --> C["Payload"]
     A --> D["Signature"]
     
-    C --> E["sub: admin@test.com<br/>iat: 1705312000<br/>exp: 1705398400"]
+    C --> E["sub = 'admin@test.com'"]
+    C --> F["iat = timestamp création"]
+    C --> G["exp = timestamp expiration"]
     
-    style C fill:#4CAF50,color:#fff
     style E fill:#4CAF50,color:#fff
 ```
 
-### Question
+### Mini cours : JwtService.extractUsername()
+
+Notre `JwtService` a une méthode `extractUsername()` qui :
+1. Décode le JWT (Base64)
+2. Lit le JSON du payload
+3. Extrait la valeur du champ `sub`
+4. Retourne l'email
+
+```java
+// Dans JwtService.java
+public String extractUsername(String token) {
+    return extractClaim(token, Claims::getSubject);  // Récupère "sub"
+}
+```
+
+---
+
+### Question à compléter
 
 ```java
 final String userEmail = jwtService.______(jwt);
@@ -365,9 +650,10 @@ final String userEmail = jwtService.extractUsername(jwt);
 ```
 
 Cette méthode :
-1. Décode le JWT
-2. Extrait le champ `subject` (sub)
-3. Retourne l'email de l'utilisateur
+1. Décode le JWT (Base64)
+2. Parse le JSON du payload
+3. Extrait le champ `sub` (subject)
+4. Retourne l'email : `"admin@test.com"`
 
 </details>
 
@@ -375,20 +661,62 @@ Cette méthode :
 
 ## Étape 7 : Vérifier si l'utilisateur n'est pas déjà authentifié
 
-### Pourquoi cette vérification?
+### Mini cours : SecurityContextHolder
+
+`SecurityContextHolder` est comme une **boîte de stockage** qui garde les informations de sécurité de la requête en cours.
+
+```mermaid
+graph TB
+    A["SecurityContextHolder"]
+    A --> B["getContext()"]
+    B --> C["SecurityContext"]
+    C --> D["getAuthentication()"]
+    D --> E["Authentication<br/>(ou null si pas connecté)"]
+    
+    style A fill:#9C27B0,color:#fff
+    style E fill:#4CAF50,color:#fff
+```
+
+**Stockage thread-local** : Chaque requête HTTP a son propre thread, donc son propre SecurityContext. Les requêtes ne se mélangent pas.
+
+### Mini cours : Pourquoi vérifier?
+
+On fait **deux vérifications** :
+
+| Vérification | Pourquoi? |
+|--------------|-----------|
+| `userEmail != null` | S'assurer que l'extraction du JWT a réussi |
+| `getAuthentication() == null` | Éviter de ré-authentifier si déjà fait |
 
 ```mermaid
 graph TB
     A["Vérification double"]
-    A --> B["userEmail != null<br/>Email extrait avec succès"]
-    A --> C["getAuthentication() == null<br/>Pas encore authentifié"]
+    A --> B{"userEmail != null?"}
+    B -->|Non| C["JWT invalide/corrompu<br/>→ Ne pas authentifier"]
+    B -->|Oui| D{"getAuthentication() == null?"}
+    D -->|Non| E["Déjà authentifié<br/>→ Ne rien faire"]
+    D -->|Oui| F["Procéder à l'authentification ✅"]
     
-    B --> D["Si les deux sont vrais<br/>→ Procéder à l'authentification"]
-    
-    style D fill:#4CAF50,color:#fff
+    style C fill:#f44336,color:#fff
+    style E fill:#FF9800,color:#fff
+    style F fill:#4CAF50,color:#fff
 ```
 
-### Question
+### Mini cours : L'opérateur &&
+
+L'opérateur `&&` (ET logique) retourne `true` seulement si **les deux conditions** sont vraies.
+
+```java
+true && true   // → true
+true && false  // → false
+false && true  // → false (pas évalué grâce au "short-circuit")
+```
+
+**Short-circuit evaluation** : Si la première condition est `false`, Java ne vérifie même pas la deuxième.
+
+---
+
+### Question à compléter
 
 ```java
 if (userEmail != null && SecurityContextHolder.getContext().______() == null) {
@@ -403,9 +731,9 @@ if (userEmail != null && SecurityContextHolder.getContext().______() == null) {
 if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 ```
 
-- `getAuthentication()` retourne l'objet Authentication actuel
-- Si `null`, personne n'est encore authentifié pour cette requête
-- On évite de ré-authentifier si déjà fait
+- `SecurityContextHolder.getContext()` : récupère le contexte de sécurité
+- `getAuthentication()` : retourne l'objet Authentication actuel (ou null)
+- Si `null`, personne n'est authentifié → on peut procéder
 
 </details>
 
@@ -413,21 +741,84 @@ if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() 
 
 ## Étape 8 : Charger l'utilisateur depuis la base de données
 
+### Mini cours : Pourquoi charger l'utilisateur?
+
+Le JWT contient l'email, mais pas toutes les informations de l'utilisateur (rôle, nom, etc.). On doit donc :
+
+1. Extraire l'email du JWT
+2. Chercher l'utilisateur complet dans la base de données
+3. Récupérer ses rôles/permissions
+
+```mermaid
+graph TB
+    A["JWT contient"]
+    A --> B["email: admin@test.com"]
+    A --> C["iat: timestamp"]
+    A --> D["exp: timestamp"]
+    
+    E["Base de données contient"]
+    E --> F["email: admin@test.com"]
+    E --> G["password: $2a$10$hash..."]
+    E --> H["role: ADMIN"]
+    E --> I["firstName: Jean"]
+    
+    style H fill:#4CAF50,color:#fff
+```
+
+### Mini cours : UserDetailsService
+
+`UserDetailsService` est une interface Spring Security avec **une seule méthode** :
+
+```java
+public interface UserDetailsService {
+    UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
+}
+```
+
+Dans notre projet, c'est configuré dans `UserDetailsConfig.java` :
+
+```java
+@Bean
+public UserDetailsService userDetailsService() {
+    return username -> userRepository.findByEmail(username)
+            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+}
+```
+
 ### Flux de chargement
 
 ```mermaid
 graph TB
-    A["userDetailsService.loadUserByUsername(email)"]
-    A --> B["UserDetailsConfig.userDetailsService()"]
-    B --> C["userRepository.findByEmail(email)"]
-    C --> D["PostgreSQL"]
-    D --> E["User (implements UserDetails)"]
+    A["loadUserByUsername('admin@test.com')"]
+    A --> B["UserDetailsConfig"]
+    B --> C["userRepository.findByEmail()"]
+    C --> D["SELECT * FROM users<br/>WHERE email = ?"]
+    D --> E["PostgreSQL"]
+    E --> F["User(email, password, role=ADMIN)"]
     
     style A fill:#2196F3,color:#fff
-    style E fill:#4CAF50,color:#fff
+    style F fill:#4CAF50,color:#fff
 ```
 
-### Question
+### Mini cours : UserDetails
+
+`UserDetails` est une interface qui représente un utilisateur pour Spring Security :
+
+```java
+public interface UserDetails {
+    String getUsername();
+    String getPassword();
+    Collection<? extends GrantedAuthority> getAuthorities();  // Les rôles!
+    boolean isEnabled();
+    // ...
+}
+```
+
+Notre classe `User` implémente cette interface.
+
+---
+
+### Question à compléter
 
 ```java
 UserDetails userDetails = this.userDetailsService.______(userEmail);
@@ -443,9 +834,10 @@ UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 ```
 
 Cette méthode :
-1. Cherche l'utilisateur par son email dans la base de données
-2. Retourne un objet `UserDetails` (notre classe `User`)
-3. Lance une exception si l'utilisateur n'existe pas
+1. Prend l'email comme paramètre
+2. Fait une requête SQL : `SELECT * FROM users WHERE email = ?`
+3. Retourne l'objet `User` complet (avec le rôle!)
+4. Lance `UsernameNotFoundException` si l'utilisateur n'existe pas
 
 </details>
 
@@ -453,24 +845,63 @@ Cette méthode :
 
 ## Étape 9 : Vérifier si le token est valide
 
-### Qu'est-ce qu'un token valide?
+### Mini cours : Qu'est-ce qu'un token valide?
+
+Un JWT peut être **invalide** pour plusieurs raisons :
+
+| Problème | Description |
+|----------|-------------|
+| **Expiré** | La date `exp` est dépassée |
+| **Signature invalide** | Quelqu'un a modifié le token |
+| **Mauvais utilisateur** | L'email ne correspond pas |
+| **Mal formé** | Le token n'est pas un JWT valide |
+
+### Mini cours : isTokenValid()
+
+Notre `JwtService` a une méthode qui vérifie tout ça :
+
+```java
+// Dans JwtService.java
+public boolean isTokenValid(String token, UserDetails userDetails) {
+    final String username = extractUsername(token);
+    return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+}
+```
+
+**Deux vérifications** :
+1. L'email dans le JWT = l'email de l'utilisateur chargé?
+2. Le token n'est pas expiré?
 
 ```mermaid
 graph TB
     A["isTokenValid(jwt, userDetails)"]
-    A --> B["1. L'email dans le JWT<br/>= email de l'utilisateur?"]
-    A --> C["2. Le token n'est pas expiré?"]
+    A --> B["extractUsername(jwt)"]
+    B --> C{"email JWT == email DB?"}
+    C -->|Non| D["INVALIDE ❌"]
+    C -->|Oui| E["isTokenExpired(jwt)"]
+    E --> F{"Expiré?"}
+    F -->|Oui| D
+    F -->|Non| G["VALIDE ✅"]
     
-    B --> D{"Les deux OK?"}
-    C --> D
-    D -->|Oui| E["Token VALIDE ✅"]
-    D -->|Non| F["Token INVALIDE ❌"]
-    
-    style E fill:#4CAF50,color:#fff
-    style F fill:#f44336,color:#fff
+    style D fill:#f44336,color:#fff
+    style G fill:#4CAF50,color:#fff
 ```
 
-### Question
+### Mini cours : Pourquoi comparer les emails?
+
+Scénario d'attaque possible :
+1. Hacker récupère un vieux JWT de l'utilisateur A
+2. L'utilisateur A est supprimé de la base
+3. Hacker essaie d'utiliser le JWT
+4. `loadUserByUsername` échoue → sécurisé!
+
+Ou pire :
+1. Hacker modifie le JWT pour mettre un autre email
+2. Mais la signature sera invalide → sécurisé!
+
+---
+
+### Question à compléter
 
 ```java
 if (jwtService.______(jwt, userDetails)) {
@@ -486,9 +917,11 @@ if (jwtService.isTokenValid(jwt, userDetails)) {
 ```
 
 Cette méthode vérifie :
-1. Que l'email dans le JWT correspond à l'utilisateur chargé
-2. Que le token n'est pas expiré
-3. Que la signature est valide
+1. Que l'email dans le JWT = email de l'utilisateur en base
+2. Que le token n'est pas expiré (`exp` > maintenant)
+3. La signature est vérifiée automatiquement lors du décodage
+
+Retourne `true` si tout est OK, `false` sinon.
 
 </details>
 
@@ -496,20 +929,76 @@ Cette méthode vérifie :
 
 ## Étape 10 : Créer l'objet Authentication
 
-### Structure de UsernamePasswordAuthenticationToken
+### Mini cours : C'est quoi Authentication?
+
+`Authentication` est un objet qui représente **un utilisateur authentifié**. Il contient :
 
 ```mermaid
 graph TB
-    A["UsernamePasswordAuthenticationToken"]
-    A --> B["Principal<br/>(l'utilisateur)"]
-    A --> C["Credentials<br/>(null - déjà auth via JWT)"]
-    A --> D["Authorities<br/>(les rôles)"]
+    A["Authentication"]
+    A --> B["Principal<br/>= L'utilisateur (qui?)"]
+    A --> C["Credentials<br/>= Le mot de passe (comment?)"]
+    A --> D["Authorities<br/>= Les permissions (quoi?)"]
+    A --> E["isAuthenticated()<br/>= true/false"]
     
     style B fill:#4CAF50,color:#fff
     style D fill:#2196F3,color:#fff
 ```
 
-### Question
+### Mini cours : UsernamePasswordAuthenticationToken
+
+C'est l'implémentation la plus courante de `Authentication`. Son constructeur a **3 arguments** :
+
+```java
+new UsernamePasswordAuthenticationToken(
+    principal,      // Qui est l'utilisateur?
+    credentials,    // Comment s'est-il authentifié?
+    authorities     // Quels sont ses droits?
+)
+```
+
+| Argument | Type | Notre valeur | Explication |
+|----------|------|--------------|-------------|
+| `principal` | Object | `userDetails` | L'objet User complet |
+| `credentials` | Object | `null` | Pas besoin, JWT déjà validé |
+| `authorities` | Collection | `userDetails.getAuthorities()` | Liste des rôles |
+
+### Mini cours : getAuthorities()
+
+Notre classe `User` a une méthode `getAuthorities()` qui retourne les rôles :
+
+```java
+// Dans User.java
+@Override
+public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    // Retourne: [ROLE_ADMIN] ou [ROLE_SUPER_ADMIN]
+}
+```
+
+Ces rôles seront utilisés par `hasRole("ADMIN")` dans SecurityConfig.
+
+### Mini cours : Pourquoi null pour credentials?
+
+```mermaid
+graph LR
+    A["Authentification classique"]
+    A --> B["username + password"]
+    B --> C["Vérifier le password"]
+    
+    D["Notre cas (JWT)"]
+    D --> E["JWT déjà validé"]
+    E --> F["Pas besoin de password"]
+    F --> G["credentials = null"]
+    
+    style G fill:#4CAF50,color:#fff
+```
+
+Le JWT a **déjà prouvé** l'identité de l'utilisateur. Pas besoin de re-vérifier le mot de passe.
+
+---
+
+### Question à compléter
 
 ```java
 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -532,9 +1021,9 @@ UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticati
 );
 ```
 
-- `userDetails` : l'objet User complet
-- `null` : pas besoin de mot de passe, le JWT a déjà été validé
-- `getAuthorities()` : retourne la liste des rôles (ex: [ROLE_ADMIN])
+- `userDetails` : l'objet User chargé depuis la base de données
+- `null` : on n'a pas besoin du mot de passe, le JWT a déjà prouvé l'identité
+- `getAuthorities()` : retourne `[ROLE_ADMIN]` pour que `hasRole("ADMIN")` fonctionne
 
 </details>
 
@@ -542,20 +1031,51 @@ UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticati
 
 ## Étape 11 : Ajouter les détails de la requête
 
-### Pourquoi?
+### Mini cours : Pourquoi des détails supplémentaires?
+
+L'objet Authentication peut contenir des **métadonnées** sur la requête. C'est utile pour :
+
+- **Logging** : savoir d'où vient la requête
+- **Audit** : tracer les actions des utilisateurs
+- **Sécurité** : détecter les comportements suspects
+
+### Mini cours : WebAuthenticationDetailsSource
+
+Cette classe extrait automatiquement des informations de la requête HTTP :
 
 ```mermaid
 graph TB
     A["WebAuthenticationDetailsSource"]
-    A --> B["Ajoute des infos sur la requête:"]
-    B --> C["Adresse IP du client"]
-    B --> D["Session ID"]
-    B --> E["Autres métadonnées"]
+    A --> B["buildDetails(request)"]
+    B --> C["WebAuthenticationDetails"]
+    C --> D["Adresse IP du client"]
+    C --> E["Session ID"]
+    C --> F["Autres métadonnées"]
     
-    style A fill:#FF9800,color:#fff
+    style C fill:#FF9800,color:#fff
 ```
 
-### Question
+### Mini cours : setDetails()
+
+`authToken.setDetails()` permet d'attacher ces informations à l'Authentication :
+
+```java
+// Crée un objet avec les détails de la requête
+WebAuthenticationDetails details = new WebAuthenticationDetailsSource().buildDetails(request);
+
+// Attache ces détails à l'Authentication
+authToken.setDetails(details);
+```
+
+Plus tard, vous pourrez récupérer ces infos :
+```java
+WebAuthenticationDetails details = (WebAuthenticationDetails) authentication.getDetails();
+String ip = details.getRemoteAddress();  // Adresse IP du client
+```
+
+---
+
+### Question à compléter
 
 ```java
 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(______));
@@ -570,7 +1090,9 @@ authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(______));
 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 ```
 
-On passe l'objet `request` (HttpServletRequest) pour que Spring puisse extraire les détails de la requête HTTP.
+- `request` est l'objet `HttpServletRequest` reçu en paramètre de `doFilterInternal()`
+- `buildDetails(request)` extrait l'IP, la session, etc.
+- Ces infos sont attachées à l'Authentication pour le logging/audit
 
 </details>
 
@@ -578,20 +1100,62 @@ On passe l'objet `request` (HttpServletRequest) pour que Spring puisse extraire 
 
 ## Étape 12 : Stocker dans le SecurityContext
 
-### Le SecurityContext
+### Mini cours : Où stocker l'Authentication?
+
+Une fois l'Authentication créée, il faut la **stocker** quelque part pour que :
+- Les autres filtres y aient accès
+- Le Controller puisse savoir qui est connecté
+- `hasRole("ADMIN")` puisse vérifier les permissions
+
+### Mini cours : SecurityContextHolder
+
+`SecurityContextHolder` est un **conteneur global** (thread-local) qui stocke le contexte de sécurité :
 
 ```mermaid
 graph TB
-    A["SecurityContextHolder"]
-    A --> B["getContext()"]
-    B --> C["SecurityContext"]
-    C --> D["setAuthentication(authToken)"]
-    D --> E["L'utilisateur est maintenant<br/>authentifié pour cette requête!"]
+    A["Thread de la requête"]
+    A --> B["SecurityContextHolder"]
+    B --> C["getContext()"]
+    C --> D["SecurityContext"]
+    D --> E["Authentication"]
+    E --> F["Principal (User)"]
+    E --> G["Authorities (Rôles)"]
     
+    style B fill:#9C27B0,color:#fff
     style E fill:#4CAF50,color:#fff
 ```
 
-### Question
+### Mini cours : Thread-local
+
+**Thread-local** signifie que chaque requête HTTP a son propre espace de stockage :
+
+```
+Requête 1 (admin@test.com) → Thread 1 → SecurityContext 1 → Auth(ADMIN)
+Requête 2 (user@test.com)  → Thread 2 → SecurityContext 2 → Auth(USER)
+Requête 3 (pas de JWT)     → Thread 3 → SecurityContext 3 → null
+```
+
+Les requêtes ne peuvent pas voir les données des autres requêtes.
+
+### Mini cours : setAuthentication()
+
+```java
+SecurityContextHolder.getContext().setAuthentication(authToken);
+```
+
+Cette ligne fait 3 choses :
+1. `SecurityContextHolder` : accède au stockage global
+2. `.getContext()` : récupère le contexte de cette requête
+3. `.setAuthentication(authToken)` : stocke notre objet Authentication
+
+**Après cette ligne**, tout le code peut savoir :
+- Que l'utilisateur est connecté
+- Qui il est (`getPrincipal()`)
+- Quels sont ses rôles (`getAuthorities()`)
+
+---
+
+### Question à compléter
 
 ```java
 SecurityContextHolder.getContext().______(authToken);
@@ -606,11 +1170,11 @@ SecurityContextHolder.getContext().______(authToken);
 SecurityContextHolder.getContext().setAuthentication(authToken);
 ```
 
-- `SecurityContextHolder` : stockage thread-local de la sécurité
-- `getContext()` : récupère le contexte de sécurité
-- `setAuthentication()` : stocke l'objet Authentication
+- `SecurityContextHolder` : le conteneur thread-local de Spring Security
+- `getContext()` : récupère le SecurityContext de cette requête
+- `setAuthentication(authToken)` : stocke l'Authentication
 
-Après cette ligne, Spring Security sait que l'utilisateur est authentifié!
+Après cette ligne, Spring Security considère l'utilisateur comme **authentifié** pour le reste de la requête.
 
 </details>
 
@@ -618,21 +1182,77 @@ Après cette ligne, Spring Security sait que l'utilisateur est authentifié!
 
 ## Étape 13 : Continuer la chaîne de filtres
 
-### La chaîne de filtres
+### Mini cours : La chaîne de filtres
+
+En Java web, les filtres sont organisés en **chaîne**. Chaque filtre doit passer la requête au suivant :
 
 ```mermaid
 graph TB
-    A["JwtAuthFilter"]
-    A --> B["filterChain.doFilter()"]
-    B --> C["Prochain filtre"]
-    C --> D["..."]
-    D --> E["Controller"]
+    A["Requête HTTP"]
+    A --> B["Filtre CORS"]
+    B --> C["Filtre CSRF"]
+    C --> D["JwtAuthFilter<br/>(notre filtre)"]
+    D --> E["Filtre Autorisation"]
+    E --> F["Controller"]
+    F --> G["Réponse"]
     
-    style A fill:#E91E63,color:#fff
-    style B fill:#4CAF50,color:#fff
+    style D fill:#E91E63,color:#fff
 ```
 
-### Question
+### Mini cours : filterChain.doFilter()
+
+La méthode `doFilter()` dit : **"J'ai fini mon travail, passe au suivant"**.
+
+```java
+filterChain.doFilter(request, response);
+```
+
+- `filterChain` : représente la chaîne de filtres
+- `doFilter(request, response)` : passe la requête au prochain filtre
+- Si c'est le dernier filtre, la requête va au Controller
+
+### Mini cours : ATTENTION - Ne jamais oublier doFilter()!
+
+```java
+// ❌ ERREUR : On oublie doFilter()
+protected void doFilterInternal(...) {
+    // ... traitement ...
+    // Oups! Pas de doFilter()
+}
+// Résultat : La requête est BLOQUÉE. Le client attend indéfiniment.
+
+// ✅ CORRECT : Toujours appeler doFilter()
+protected void doFilterInternal(...) {
+    // ... traitement ...
+    filterChain.doFilter(request, response);  // OBLIGATOIRE!
+}
+```
+
+### Mini cours : Quand appeler doFilter()?
+
+On appelle `doFilter()` dans **tous les cas** :
+
+```mermaid
+graph TB
+    A["Début du filtre"]
+    A --> B{"JWT présent?"}
+    B -->|Non| C["doFilter() → sans auth"]
+    B -->|Oui| D{"JWT valide?"}
+    D -->|Non| E["doFilter() → sans auth"]
+    D -->|Oui| F["Créer Authentication"]
+    F --> G["Stocker dans SecurityContext"]
+    G --> H["doFilter() → avec auth"]
+    
+    style C fill:#FF9800,color:#fff
+    style E fill:#FF9800,color:#fff
+    style H fill:#4CAF50,color:#fff
+```
+
+**Dans tous les chemins**, on finit par `doFilter()`.
+
+---
+
+### Question à compléter
 
 ```java
 filterChain.______(request, response);
@@ -649,7 +1269,8 @@ filterChain.doFilter(request, response);
 
 - `doFilter()` passe la requête au prochain filtre dans la chaîne
 - Finalement, la requête atteindra le Controller
-- **IMPORTANT** : Cette ligne doit TOUJOURS être appelée, sinon la requête reste bloquée!
+- **CRITIQUE** : Cette ligne doit TOUJOURS être appelée!
+- Si vous l'oubliez, le client attend indéfiniment (timeout)
 
 </details>
 
