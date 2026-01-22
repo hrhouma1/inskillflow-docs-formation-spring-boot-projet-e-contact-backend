@@ -1,32 +1,32 @@
-# Chapitre 1.1 - Presentation du projet
+# Chapitre 1.1 - Présentation du projet
 
 ## Objectifs du chapitre
 
 - Comprendre le contexte et les besoins du projet
-- Identifier les fonctionnalites principales
+- Identifier les fonctionnalités principales
 - Visualiser l'architecture globale
-- Connaitre les technologies utilisees
+- Connaître les technologies utilisées
 
 ---
 
-## 1. Contexte et problematique
+## 1. Contexte et problématique
 
-### Le besoin metier
+### Le besoin métier
 
-Dans le monde numerique actuel, toute entreprise a besoin d'un moyen efficace pour collecter et gerer les demandes de ses clients potentiels. Un **formulaire de contact** est souvent le premier point d'interaction entre un visiteur et une entreprise.
+Dans le monde numérique actuel, toute entreprise a besoin d'un moyen efficace pour collecter et gérer les demandes de ses clients potentiels. Un **formulaire de contact** est souvent le premier point d'interaction entre un visiteur et une entreprise.
 
-### Problematique
+### Problématique
 
-Une entreprise souhaite collecter les demandes de contact de ses visiteurs via un formulaire web. Elle a besoin de:
+Une entreprise souhaite collecter les demandes de contact de ses visiteurs via un formulaire web. Elle a besoin de :
 
-1. **Un formulaire accessible publiquement** - Les visiteurs doivent pouvoir soumettre leurs demandes sans creer de compte
-2. **Une notification par email** - L'equipe commerciale doit etre alertee immediatement
-3. **Un espace d'administration securise** - Pour gerer et suivre les leads
-4. **Des statistiques** - Pour mesurer l'efficacite du formulaire
+1. **Un formulaire accessible publiquement** - Les visiteurs doivent pouvoir soumettre leurs demandes sans créer de compte
+2. **Une notification par email** - L'équipe commerciale doit être alertée immédiatement
+3. **Un espace d'administration sécurisé** - Pour gérer et suivre les leads
+4. **Des statistiques** - Pour mesurer l'efficacité du formulaire
 
-### Qu'est-ce qu'un Lead?
+### Qu'est-ce qu'un Lead ?
 
-Un **lead** (ou prospect) est une personne qui a manifeste un interet pour les produits ou services d'une entreprise. Dans notre contexte, chaque soumission de formulaire cree un nouveau lead.
+Un **lead** (ou prospect) est une personne qui a manifesté un intérêt pour les produits ou services d'une entreprise. Dans notre contexte, chaque soumission de formulaire crée un nouveau lead.
 
 ### Le cycle de vie d'un lead
 
@@ -34,45 +34,45 @@ Un **lead** (ou prospect) est une personne qui a manifeste un interet pour les p
 stateDiagram-v2
     [*] --> NEW: Formulaire soumis
     NEW --> CONTACTED: Premier contact
-    CONTACTED --> CONVERTED: Vente reussie
-    CONTACTED --> LOST: Pas interesse
-    NEW --> LOST: Pas de reponse
+    CONTACTED --> CONVERTED: Vente réussie
+    CONTACTED --> LOST: Pas intéressé
+    NEW --> LOST: Pas de réponse
     CONVERTED --> [*]
     LOST --> [*]
 ```
 
 ---
 
-## 2. La solution: une API REST
+## 2. La solution : une API REST
 
-### Qu'est-ce qu'une API?
+### Qu'est-ce qu'une API ?
 
-Une **API (Application Programming Interface)** est une interface qui permet a deux applications de communiquer entre elles. Dans notre cas:
+Une **API (Application Programming Interface)** est une interface qui permet à deux applications de communiquer entre elles. Dans notre cas :
 
 - Le **frontend** (site web) communique avec
 - Le **backend** (notre API Spring Boot)
 
-### Qu'est-ce que REST?
+### Qu'est-ce que REST ?
 
-**REST (REpresentational State Transfer)** est un style d'architecture pour concevoir des APIs web. Ses principes:
+**REST (REpresentational State Transfer)** est un style d'architecture pour concevoir des APIs web. Ses principes :
 
-1. **Client-Serveur**: Separation des responsabilites
-2. **Stateless**: Chaque requete est independante
-3. **Interface uniforme**: Utilisation coherente des methodes HTTP
-4. **Ressources**: Tout est une ressource identifiee par une URL
+1. **Client-Serveur** : Séparation des responsabilités
+2. **Stateless** : Chaque requête est indépendante
+3. **Interface uniforme** : Utilisation cohérente des méthodes HTTP
+4. **Ressources** : Tout est une ressource identifiée par une URL
 
 ### Notre solution
 
-Developper une **API REST** avec **Spring Boot** qui:
+Développer une **API REST** avec **Spring Boot** qui :
 
 - Expose un endpoint public pour soumettre le formulaire
 - Envoie des emails automatiquement
-- Securise l'acces admin avec JWT
-- Stocke les donnees dans une base PostgreSQL
+- Sécurise l'accès admin avec JWT
+- Stocke les données dans une base PostgreSQL
 
 ---
 
-## 3. Fonctionnalites detaillees
+## 3. Fonctionnalités détaillées
 
 ### Vue d'ensemble
 
@@ -99,17 +99,17 @@ flowchart TB
 
 ### Partie publique
 
-| Fonctionnalite | Endpoint | Methode | Description |
+| Fonctionnalité | Endpoint | Méthode | Description |
 |----------------|----------|---------|-------------|
-| Soumettre formulaire | /api/contact | POST | Cree un nouveau lead et envoie les notifications |
+| Soumettre formulaire | /api/contact | POST | Crée un nouveau lead et envoie les notifications |
 
-### Partie administration (securisee)
+### Partie administration (sécurisée)
 
-| Fonctionnalite | Endpoint | Methode | Description |
+| Fonctionnalité | Endpoint | Méthode | Description |
 |----------------|----------|---------|-------------|
 | Connexion | /api/auth/login | POST | Authentification, retourne un token JWT |
 | Liste des leads | /api/admin/leads | GET | Retourne les leads avec pagination |
-| Detail d'un lead | /api/admin/leads/{id} | GET | Retourne un lead specifique |
+| Détail d'un lead | /api/admin/leads/{id} | GET | Retourne un lead spécifique |
 | Modifier statut | /api/admin/leads/{id}/status | PUT | Change le statut du lead |
 | Supprimer | /api/admin/leads/{id} | DELETE | Supprime un lead |
 | Statistiques | /api/admin/leads/stats | GET | Compteurs par statut |
@@ -120,20 +120,20 @@ flowchart TB
 
 ### Architecture en couches
 
-L'application suit une **architecture en couches** (layered architecture), un pattern classique qui separe les responsabilites:
+L'application suit une **architecture en couches** (layered architecture), un pattern classique qui sépare les responsabilités :
 
 ```mermaid
 flowchart TB
     Client[Client HTTP]
     
     subgraph API["API Spring Boot"]
-        Controller[Controller Layer<br/>Reception des requetes]
-        Service[Service Layer<br/>Logique metier]
-        Repository[Repository Layer<br/>Acces aux donnees]
-        Model[Model Layer<br/>Entites JPA]
+        Controller[Controller Layer<br/>Réception des requêtes]
+        Service[Service Layer<br/>Logique métier]
+        Repository[Repository Layer<br/>Accès aux données]
+        Model[Model Layer<br/>Entités JPA]
     end
     
-    DB[(Base de donnees)]
+    DB[(Base de données)]
     SMTP[Serveur SMTP]
     
     Client <--> Controller
@@ -146,23 +146,23 @@ flowchart TB
 
 ### Description des couches
 
-| Couche | Responsabilite | Exemple de classe |
+| Couche | Responsabilité | Exemple de classe |
 |--------|---------------|-------------------|
-| **Controller** | Recevoir les requetes HTTP, valider les entrees | ContactController |
-| **Service** | Logique metier, orchestration | LeadService |
-| **Repository** | Acces aux donnees, requetes SQL | LeadRepository |
-| **Model** | Representation des donnees | Lead, User |
+| **Controller** | Recevoir les requêtes HTTP, valider les entrées | ContactController |
+| **Service** | Logique métier, orchestration | LeadService |
+| **Repository** | Accès aux données, requêtes SQL | LeadRepository |
+| **Model** | Représentation des données | Lead, User |
 
-### Pourquoi cette separation?
+### Pourquoi cette séparation ?
 
-1. **Maintenabilite**: Chaque couche peut evoluer independamment
-2. **Testabilite**: Facile de tester chaque couche isolement
-3. **Reutilisabilite**: Un service peut etre utilise par plusieurs controllers
-4. **Clarte**: Le code est organise de maniere previsible
+1. **Maintenabilité** : Chaque couche peut évoluer indépendamment
+2. **Testabilité** : Facile de tester chaque couche isolément
+3. **Réutilisabilité** : Un service peut être utilisé par plusieurs controllers
+4. **Clarté** : Le code est organisé de manière prévisible
 
 ---
 
-## 5. Technologies utilisees
+## 5. Technologies utilisées
 
 ### Stack technique
 
@@ -175,10 +175,10 @@ mindmap
       Spring Security
       Spring Data JPA
       Spring Mail
-    Base de donnees
+    Base de données
       PostgreSQL Prod
       H2 Dev
-    Securite
+    Sécurité
       JWT
       BCrypt
     Documentation
@@ -190,20 +190,20 @@ mindmap
       Maven
 ```
 
-### Detail des technologies
+### Détail des technologies
 
-| Categorie | Technologie | Role | Version |
+| Catégorie | Technologie | Rôle | Version |
 |-----------|-------------|------|---------|
 | **Langage** | Java | Langage de programmation | 17 LTS |
 | **Framework** | Spring Boot | Framework principal | 3.2.0 |
-| **Securite** | Spring Security | Authentification/Autorisation | - |
-| **Persistance** | Spring Data JPA | Acces aux donnees | - |
+| **Sécurité** | Spring Security | Authentification/Autorisation | - |
+| **Persistance** | Spring Data JPA | Accès aux données | - |
 | **Email** | Spring Mail | Envoi d'emails | - |
-| **BDD Prod** | PostgreSQL | Base de donnees production | 15 |
-| **BDD Dev** | H2 | Base de donnees developpement | Embedded |
+| **BDD Prod** | PostgreSQL | Base de données production | 15 |
+| **BDD Dev** | H2 | Base de données développement | Embedded |
 | **Auth** | JWT (jjwt) | Tokens d'authentification | 0.12.3 |
 | **Doc** | springdoc-openapi | Documentation API | 2.3.0 |
-| **Build** | Maven | Gestion des dependances | 3.x |
+| **Build** | Maven | Gestion des dépendances | 3.x |
 | **Container** | Docker | Conteneurisation | - |
 
 ---
@@ -216,10 +216,10 @@ mindmap
 projet-e-contact-backend/
 |
 |-- src/main/java/com/example/contact/
-|   |-- ContactApplication.java      # Point d'entree de l'application
+|   |-- ContactApplication.java      # Point d'entrée de l'application
 |   |
 |   |-- config/                      # Configuration Spring
-|   |   |-- SecurityConfig.java      # Configuration securite
+|   |   |-- SecurityConfig.java      # Configuration sécurité
 |   |   |-- OpenApiConfig.java       # Configuration Swagger
 |   |
 |   |-- controller/                  # Endpoints REST
@@ -228,32 +228,32 @@ projet-e-contact-backend/
 |   |   |-- LeadController.java      # Gestion des leads
 |   |
 |   |-- dto/                         # Objets de transfert
-|   |   |-- request/                 # Donnees entrantes
-|   |   |-- response/                # Donnees sortantes
+|   |   |-- request/                 # Données entrantes
+|   |   |-- response/                # Données sortantes
 |   |
 |   |-- exception/                   # Gestion des erreurs
 |   |
-|   |-- model/                       # Entites JPA
+|   |-- model/                       # Entités JPA
 |   |   |-- Lead.java
 |   |   |-- User.java
 |   |
-|   |-- repository/                  # Acces donnees
+|   |-- repository/                  # Accès données
 |   |
 |   |-- security/                    # JWT
 |   |
-|   |-- service/                     # Logique metier
+|   |-- service/                     # Logique métier
 |
 |-- src/main/resources/
 |   |-- application.yml              # Configuration
 |
 |-- docker-compose.yml               # Orchestration Docker
 |-- Dockerfile                       # Image Docker
-|-- pom.xml                          # Dependances Maven
+|-- pom.xml                          # Dépendances Maven
 ```
 
 ---
 
-## 7. Flux de donnees
+## 7. Flux de données
 
 ### Soumission d'un formulaire de contact
 
@@ -270,14 +270,14 @@ sequenceDiagram
 
     V->>F: Remplit le formulaire
     F->>C: POST /api/contact (JSON)
-    C->>C: Validation des donnees
+    C->>C: Validation des données
     C->>S: createLead(request)
     S->>R: save(lead)
     R->>DB: INSERT INTO leads
     DB-->>R: Lead avec ID
-    R-->>S: Lead sauvegarde
+    R-->>S: Lead sauvegardé
     
-    par Envoi emails en parallele
+    par Envoi emails en parallèle
         S->>E: sendAdminNotification()
         E->>SMTP: Email vers admin
         S->>E: sendVisitorConfirmation()
@@ -306,14 +306,14 @@ sequenceDiagram
     UDS->>DB: SELECT * FROM users
     DB-->>UDS: User
     UDS-->>AM: UserDetails
-    AM->>AM: Verifier mot de passe (BCrypt)
+    AM->>AM: Vérifier mot de passe (BCrypt)
     AM-->>C: Authentication
     C->>JWT: generateToken(user)
     JWT-->>C: Token JWT
     C-->>A: 200 OK + {token: "eyJ..."}
 ```
 
-### Acces aux endpoints proteges
+### Accès aux endpoints protégés
 
 ```mermaid
 sequenceDiagram
@@ -329,7 +329,7 @@ sequenceDiagram
     F->>JWT: isTokenValid(token, user)
     JWT-->>F: true
     F->>F: Set SecurityContext
-    F->>C: Requete autorisee
+    F->>C: Requête autorisée
     C->>S: getAllLeads()
     S-->>C: List<LeadDto>
     C-->>A: 200 OK + JSON
@@ -337,223 +337,223 @@ sequenceDiagram
 
 ---
 
-## 8. Concepts cles
+## 8. Concepts clés
 
 ### API Stateless
 
-Une API **stateless** (sans etat) signifie que:
+Une API **stateless** (sans état) signifie que :
 
 - Le serveur ne conserve aucune information de session
-- Chaque requete contient toutes les informations necessaires
-- L'authentification se fait via un token (JWT) envoye a chaque requete
+- Chaque requête contient toutes les informations nécessaires
+- L'authentification se fait via un token (JWT) envoyé à chaque requête
 
-**Avantages:**
-- Scalabilite horizontale (plusieurs serveurs)
-- Pas de probleme de session expiree
-- Simplicite de deploiement
+**Avantages :**
+- Scalabilité horizontale (plusieurs serveurs)
+- Pas de problème de session expirée
+- Simplicité de déploiement
 
 ### JWT (JSON Web Token)
 
-Un **JWT** est un token qui contient des informations encodees:
+Un **JWT** est un token qui contient des informations encodées :
 
 ```
 eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImlhdCI6MTcwNTMxMjAwMH0.signature
 |_____Header_____|._____________Payload_______________|.__Signature__|
 ```
 
-- **Header**: Algorithme de signature
-- **Payload**: Donnees (email, roles, expiration)
-- **Signature**: Garantit l'integrite
+- **Header** : Algorithme de signature
+- **Payload** : Données (email, rôles, expiration)
+- **Signature** : Garantit l'intégrité
 
-### Separation dev/prod
+### Séparation dev/prod
 
-L'application utilise des **profils Spring** pour adapter la configuration:
+L'application utilise des **profils Spring** pour adapter la configuration :
 
-| Aspect | Developpement (dev) | Production (prod) |
+| Aspect | Développement (dev) | Production (prod) |
 |--------|---------------------|-------------------|
-| Base de donnees | H2 (memoire) | PostgreSQL |
+| Base de données | H2 (mémoire) | PostgreSQL |
 | Emails | MailHog (fake) | Gmail SMTP |
 | Logs | DEBUG | INFO |
-| Schema BDD | create-drop | validate |
+| Schéma BDD | create-drop | validate |
 
 ---
 
-## 9. Points cles a retenir
+## 9. Points clés à retenir
 
-1. **Architecture en couches**: Controller → Service → Repository → Model
-2. **API Stateless**: Pas de session, authentification par JWT
-3. **Securite**: Endpoints admin proteges, mots de passe hashes avec BCrypt
-4. **Separation des environnements**: Profils dev et prod
-5. **Documentation automatique**: Swagger genere la doc depuis le code
-6. **Conteneurisation**: Docker pour un deploiement reproductible
+1. **Architecture en couches** : Controller → Service → Repository → Model
+2. **API Stateless** : Pas de session, authentification par JWT
+3. **Sécurité** : Endpoints admin protégés, mots de passe hachés avec BCrypt
+4. **Séparation des environnements** : Profils dev et prod
+5. **Documentation automatique** : Swagger génère la doc depuis le code
+6. **Conteneurisation** : Docker pour un déploiement reproductible
 
 ---
 
-## QUIZ 1.1 - Presentation du projet
+## QUIZ 1.1 - Présentation du projet
 
-**1. Quel est le role principal de cette API?**
-- a) Gerer un site e-commerce
-- b) Collecter et gerer des demandes de contact
+**1. Quel est le rôle principal de cette API ?**
+- a) Gérer un site e-commerce
+- b) Collecter et gérer des demandes de contact
 - c) Envoyer des newsletters
-- d) Gerer un blog
+- d) Gérer un blog
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: b) Collecter et gerer des demandes de contact**
+**Réponse : b) Collecter et gérer des demandes de contact**
 
-L'API permet aux visiteurs de soumettre des formulaires de contact et aux administrateurs de gerer ces leads.
+L'API permet aux visiteurs de soumettre des formulaires de contact et aux administrateurs de gérer ces leads.
 
 </details>
 
 ---
 
-**2. Quel endpoint permet de soumettre un formulaire de contact?**
+**2. Quel endpoint permet de soumettre un formulaire de contact ?**
 - a) GET /api/contact
 - b) POST /api/leads
 - c) POST /api/contact
 - d) PUT /api/contact
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: c) POST /api/contact**
+**Réponse : c) POST /api/contact**
 
-La methode POST est utilisee pour creer une nouvelle ressource. L'endpoint /api/contact est public.
+La méthode POST est utilisée pour créer une nouvelle ressource. L'endpoint /api/contact est public.
 
 </details>
 
 ---
 
-**3. Quelle technologie est utilisee pour l'authentification?**
+**3. Quelle technologie est utilisée pour l'authentification ?**
 - a) Sessions
 - b) Cookies
 - c) JWT
 - d) OAuth2
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: c) JWT (JSON Web Token)**
+**Réponse : c) JWT (JSON Web Token)**
 
-JWT permet une authentification stateless. Le token contient les informations de l'utilisateur et est envoye dans chaque requete.
+JWT permet une authentification stateless. Le token contient les informations de l'utilisateur et est envoyé dans chaque requête.
 
 </details>
 
 ---
 
-**4. VRAI ou FAUX: Les endpoints admin sont accessibles sans authentification.**
+**4. VRAI ou FAUX : Les endpoints admin sont accessibles sans authentification.**
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: FAUX**
+**Réponse : FAUX**
 
-Les endpoints /api/admin/** sont proteges par Spring Security et necessitent un token JWT valide avec le role ADMIN.
+Les endpoints /api/admin/** sont protégés par Spring Security et nécessitent un token JWT valide avec le rôle ADMIN.
 
 </details>
 
 ---
 
-**5. Quelle base de donnees est utilisee en production?**
+**5. Quelle base de données est utilisée en production ?**
 - a) H2
 - b) MySQL
 - c) PostgreSQL
 - d) MongoDB
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: c) PostgreSQL**
+**Réponse : c) PostgreSQL**
 
-PostgreSQL est utilise en production pour sa robustesse. H2 est utilise en developpement car elle fonctionne en memoire.
+PostgreSQL est utilisé en production pour sa robustesse. H2 est utilisé en développement car elle fonctionne en mémoire.
 
 </details>
 
 ---
 
-**6. Combien de couches principales composent l'architecture?**
+**6. Combien de couches principales composent l'architecture ?**
 - a) 2
 - b) 3
 - c) 4
 - d) 5
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: c) 4**
+**Réponse : c) 4**
 
-Les 4 couches sont:
-1. Controller (reception des requetes)
-2. Service (logique metier)
-3. Repository (acces aux donnees)
-4. Model (entites JPA)
+Les 4 couches sont :
+1. Controller (réception des requêtes)
+2. Service (logique métier)
+3. Repository (accès aux données)
+4. Model (entités JPA)
 
 </details>
 
 ---
 
-**7. Que se passe-t-il apres la soumission d'un formulaire?**
-- a) Le lead est sauvegarde en base
-- b) Un email est envoye a l'admin
-- c) Un email de confirmation est envoye au visiteur
-- d) Toutes les reponses ci-dessus
+**7. Que se passe-t-il après la soumission d'un formulaire ?**
+- a) Le lead est sauvegardé en base
+- b) Un email est envoyé à l'admin
+- c) Un email de confirmation est envoyé au visiteur
+- d) Toutes les réponses ci-dessus
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: d) Toutes les reponses ci-dessus**
+**Réponse : d) Toutes les réponses ci-dessus**
 
-Le flux complet:
-1. Sauvegarde du lead en base de donnees
-2. Envoi d'un email de notification a l'administrateur
+Le flux complet :
+1. Sauvegarde du lead en base de données
+2. Envoi d'un email de notification à l'administrateur
 3. Envoi d'un email de confirmation au visiteur
 
 </details>
 
 ---
 
-**8. Completez: L'API est _______ car elle n'utilise pas de sessions serveur.**
+**8. Complétez : L'API est _______ car elle n'utilise pas de sessions serveur.**
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: stateless**
+**Réponse : stateless**
 
-Une API stateless ne conserve pas d'etat entre les requetes. Chaque requete contient toutes les informations necessaires (notamment le token JWT).
+Une API stateless ne conserve pas d'état entre les requêtes. Chaque requête contient toutes les informations nécessaires (notamment le token JWT).
 
 </details>
 
 ---
 
-**9. Quel outil permet de documenter automatiquement l'API?**
+**9. Quel outil permet de documenter automatiquement l'API ?**
 - a) Javadoc
 - b) Swagger/OpenAPI
 - c) Postman
 - d) JUnit
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: b) Swagger/OpenAPI**
+**Réponse : b) Swagger/OpenAPI**
 
-springdoc-openapi genere automatiquement la documentation a partir des annotations du code. Swagger UI permet de visualiser et tester l'API.
+springdoc-openapi génère automatiquement la documentation à partir des annotations du code. Swagger UI permet de visualiser et tester l'API.
 
 </details>
 
 ---
 
-**10. Dans quel fichier sont definies les dependances Maven?**
+**10. Dans quel fichier sont définies les dépendances Maven ?**
 - a) build.gradle
 - b) package.json
 - c) pom.xml
 - d) dependencies.yml
 
 <details>
-<summary>Voir la reponse</summary>
+<summary>Voir la réponse</summary>
 
-**Reponse: c) pom.xml**
+**Réponse : c) pom.xml**
 
-Le fichier pom.xml (Project Object Model) est le fichier de configuration Maven. Il contient les dependances, les plugins et les informations du projet.
+Le fichier pom.xml (Project Object Model) est le fichier de configuration Maven. Il contient les dépendances, les plugins et les informations du projet.
 
 </details>
