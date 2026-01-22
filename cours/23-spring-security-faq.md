@@ -19,33 +19,78 @@ Imaginons que vous avez **deux bâtiments** :
 ```mermaid
 graph TB
     subgraph "Bâtiment A - Frontend"
-        GUARD_A["Gardien NextAuth<br/>Vérifie les visiteurs<br/>du bâtiment A"]
         VISITORS["Visiteurs<br/>(utilisateurs)"]
+        GUARD_A["Gardien NextAuth<br/>Gère l'interface<br/>et stocke le badge"]
     end
     
     subgraph "Bâtiment B - Backend"
-        GUARD_B["Gardien Spring Security<br/>Vérifie les visiteurs<br/>du bâtiment B"]
+        GUARD_B["Gardien Spring Security<br/>CRÉE et VÉRIFIE<br/>les badges (JWT)"]
         COFFRE["Coffre-fort<br/>(Base de données)"]
     end
     
-    VISITORS --> GUARD_A
-    GUARD_A -->|"Laissez-passer (JWT)"| GUARD_B
+    VISITORS -->|"1. Demande de badge<br/>(login)"| GUARD_A
+    GUARD_A -->|"2. Transmet la demande"| GUARD_B
+    GUARD_B -->|"3. Crée le badge JWT"| GUARD_A
+    GUARD_A -->|"4. Stocke le badge"| VISITORS
+    VISITORS -->|"5. Présente le badge<br/>à chaque visite"| GUARD_B
     GUARD_B --> COFFRE
     
     style GUARD_A fill:#2196F3,color:#fff
     style GUARD_B fill:#4CAF50,color:#fff
 ```
 
+### Flux correct détaillé
+
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur
+    participant F as Frontend (NextAuth)
+    participant B as Backend (Spring Security)
+    participant DB as Base de données
+    
+    Note over U,B: 1. CONNEXION (Login)
+    U->>F: Email + Password
+    F->>B: POST /api/auth/login
+    B->>DB: Vérifier credentials
+    DB-->>B: Utilisateur trouvé
+    B->>B: GÉNÈRE le JWT
+    B-->>F: { token: "eyJ..." }
+    F->>F: Stocke le JWT (localStorage/cookie)
+    F-->>U: Connecté!
+    
+    Note over U,B: 2. REQUÊTES SUIVANTES
+    U->>F: Clic sur "Mes leads"
+    F->>B: GET /api/leads<br/>Authorization: Bearer eyJ...
+    B->>B: VÉRIFIE le JWT
+    B->>DB: Récupère les données
+    DB-->>B: Leads
+    B-->>F: [ leads... ]
+    F-->>U: Affiche les leads
+```
+
+> **Point clé** : C'est le **BACKEND (Spring Security)** qui :
+> - Crée le JWT lors du login
+> - Vérifie le JWT à chaque requête
+> 
+> Le **FRONTEND (NextAuth)** ne fait que :
+> - Transmettre les credentials au backend
+> - Stocker le JWT reçu
+> - Envoyer le JWT avec chaque requête
+
 ### NextAuth + Spring Security : Faut-il les deux?
 
 **OUI, il faut les deux!** Mais ils ont des rôles différents :
 
-| Gardien | Rôle | Ce qu'il protège |
-|---------|------|------------------|
-| **NextAuth** (Frontend) | Gère la connexion utilisateur | Pages du frontend |
-| **Spring Security** (Backend) | Vérifie les tokens, protège l'API | Données en base |
+| Gardien | Rôle | Ce qu'il fait |
+|---------|------|---------------|
+| **Spring Security** (Backend) | CRÉE et VÉRIFIE les JWT | Authentifie, autorise, protège l'API |
+| **NextAuth** (Frontend) | STOCKE et ENVOIE les JWT | Gère l'état de session côté client |
 
-**Pourquoi les deux?** Imaginez que quelqu'un contourne le gardien A (frontend) et va directement au bâtiment B (API). Sans le gardien B (Spring Security), il accède directement au coffre-fort!
+**Pourquoi les deux?** 
+- **Spring Security est OBLIGATOIRE** : C'est lui qui génère les tokens et protège vos données
+- **NextAuth est PRATIQUE** : Il facilite la gestion de session côté frontend
+
+Imaginez que quelqu'un contourne le gardien A (frontend) et va directement au bâtiment B (API). Sans le gardien B (Spring Security), il accède directement au coffre-fort!
 
 ```mermaid
 graph LR
