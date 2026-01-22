@@ -3,49 +3,78 @@
 ## Objectifs du chapitre
 
 - Comprendre l'architecture en couches
-- Connaitre les responsabilites de chaque couche
-- Savoir pourquoi cette separation est importante
+- Connaître les responsabilités de chaque couche
+- Savoir pourquoi cette séparation est importante
 
 ---
 
 ## 1. Qu'est-ce que l'architecture en couches?
 
-### Definition
+### Définition
 
-L'architecture en couches (ou n-tiers) organise le code en **niveaux distincts**, chacun ayant une responsabilite specifique.
+L'architecture en couches (ou **n-tiers**) organise le code en **niveaux distincts**, chacun ayant une responsabilité spécifique. Cette approche est un pilier fondamental du développement logiciel moderne.
 
-### Principe fondamental
+> **Principe fondamental** : Chaque couche ne communique qu'avec la couche adjacente.
 
-> Chaque couche ne communique qu'avec la couche adjacente.
+### Diagramme de l'architecture
 
+```mermaid
+flowchart TB
+    subgraph "Couche Présentation"
+        CTRL[Controller<br/>Reçoit les requêtes HTTP]
+    end
+    
+    subgraph "Couche Métier"
+        SVC[Service<br/>Logique business]
+    end
+    
+    subgraph "Couche Données"
+        REPO[Repository<br/>Accès aux données]
+    end
+    
+    subgraph "Stockage"
+        DB[(Base de données)]
+    end
+    
+    CLIENT[Client HTTP] --> CTRL
+    CTRL --> SVC
+    SVC --> REPO
+    REPO --> DB
+    
+    style CTRL fill:#2196F3,color:#fff
+    style SVC fill:#4CAF50,color:#fff
+    style REPO fill:#FF9800,color:#fff
+    style DB fill:#9E9E9E,color:#fff
 ```
-     +-----------------+
-     |   Presentation  |  (Controller)
-     +-----------------+
-             |
-             v
-     +-----------------+
-     |     Metier      |  (Service)
-     +-----------------+
-             |
-             v
-     +-----------------+
-     |     Donnees     |  (Repository)
-     +-----------------+
-             |
-             v
-     +-----------------+
-     |  Base de donnees|
-     +-----------------+
-```
+
+### Pourquoi cette architecture?
+
+L'architecture en couches permet de :
+
+1. **Séparer les préoccupations** : Chaque couche a un rôle précis
+2. **Faciliter la maintenance** : Modifier une couche sans impacter les autres
+3. **Améliorer la testabilité** : Tester chaque couche indépendamment
+4. **Favoriser la réutilisation** : Un service peut être utilisé par plusieurs controllers
 
 ---
 
 ## 2. Les 4 couches principales
 
-### 2.1 Couche Presentation (Controller)
+### Vue d'ensemble
 
-**Role**: Recevoir les requetes HTTP et renvoyer les reponses.
+```mermaid
+graph LR
+    subgraph "Flux d'une requête"
+        A[Client] -->|JSON| B[Controller]
+        B -->|DTO| C[Service]
+        C -->|Entity| D[Repository]
+        D -->|SQL| E[(Database)]
+    end
+```
+
+### 2.1 Couche Présentation (Controller)
+
+**Rôle** : Recevoir les requêtes HTTP et renvoyer les réponses.
 
 ```java
 @RestController
@@ -55,28 +84,28 @@ public class ContactController {
     private final LeadService leadService;
     
     @PostMapping
-    public ResponseEntity<LeadDto> submit(@RequestBody ContactFormRequest request) {
+    public ResponseEntity<LeadDto> submit(@RequestBody @Valid ContactFormRequest request) {
         LeadDto lead = leadService.createLead(request);
         return ResponseEntity.ok(lead);
     }
 }
 ```
 
-**Responsabilites**:
-- Valider les donnees d'entree
-- Appeler le service approprie
-- Formater la reponse HTTP
-- Gerer les codes de statut
+**Responsabilités** :
+- ✅ Valider les données d'entrée
+- ✅ Appeler le service approprié
+- ✅ Formater la réponse HTTP
+- ✅ Gérer les codes de statut
 
-**Ne fait PAS**:
-- Logique metier
-- Acces direct a la base de donnees
+**Ne fait PAS** :
+- ❌ Logique métier
+- ❌ Accès direct à la base de données
 
 ---
 
-### 2.2 Couche Metier (Service)
+### 2.2 Couche Métier (Service)
 
-**Role**: Contenir la logique metier de l'application.
+**Rôle** : Contenir la logique métier de l'application.
 
 ```java
 @Service
@@ -87,7 +116,7 @@ public class LeadService {
     private final EmailService emailService;
     
     public LeadDto createLead(ContactFormRequest request) {
-        // 1. Creer l'entite
+        // 1. Créer l'entité
         Lead lead = new Lead();
         lead.setFullName(request.getFullName());
         lead.setEmail(request.getEmail());
@@ -106,48 +135,48 @@ public class LeadService {
 }
 ```
 
-**Responsabilites**:
-- Implementer les regles metier
-- Coordonner les operations
-- Appeler les repositories
-- Gerer les transactions
+**Responsabilités** :
+- ✅ Implémenter les règles métier
+- ✅ Coordonner les opérations
+- ✅ Appeler les repositories
+- ✅ Gérer les transactions
 
-**Ne fait PAS**:
-- Gerer les requetes HTTP
-- Connaitre les details de la base de donnees
+**Ne fait PAS** :
+- ❌ Gérer les requêtes HTTP
+- ❌ Connaître les détails de la base de données
 
 ---
 
-### 2.3 Couche Donnees (Repository)
+### 2.3 Couche Données (Repository)
 
-**Role**: Abstraire l'acces a la base de donnees.
+**Rôle** : Abstraire l'accès à la base de données.
 
 ```java
 @Repository
 public interface LeadRepository extends JpaRepository<Lead, Long> {
     
-    // Methodes heritees: save(), findById(), findAll(), delete()...
+    // Méthodes héritées: save(), findById(), findAll(), delete()...
     
-    // Methodes personnalisees
+    // Méthodes personnalisées
     List<Lead> findByStatus(LeadStatus status);
     long countByStatus(LeadStatus status);
 }
 ```
 
-**Responsabilites**:
-- Operations CRUD
-- Requetes personnalisees
-- Abstraction du stockage
+**Responsabilités** :
+- ✅ Opérations CRUD
+- ✅ Requêtes personnalisées
+- ✅ Abstraction du stockage
 
-**Ne fait PAS**:
-- Logique metier
-- Gestion des requetes HTTP
+**Ne fait PAS** :
+- ❌ Logique métier
+- ❌ Gestion des requêtes HTTP
 
 ---
 
-### 2.4 Couche Model (Entites)
+### 2.4 Couche Model (Entités)
 
-**Role**: Representer les donnees de l'application.
+**Rôle** : Représenter les données de l'application.
 
 ```java
 @Entity
@@ -172,46 +201,71 @@ public class Lead {
 }
 ```
 
-**Responsabilites**:
-- Mapper les tables de la base
-- Definir les contraintes
-- Representer le domaine
+**Responsabilités** :
+- ✅ Mapper les tables de la base
+- ✅ Définir les contraintes
+- ✅ Représenter le domaine
 
 ---
 
-## 3. Flux d'une requete
+## 3. Flux d'une requête
 
-### Exemple: Soumission d'un formulaire
+### Diagramme de séquence
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant CT as Controller
+    participant S as Service
+    participant R as Repository
+    participant DB as Database
+    
+    C->>CT: POST /api/contact<br/>{JSON}
+    CT->>CT: Valider les données
+    CT->>S: createLead(request)
+    S->>S: Créer l'entité Lead
+    S->>R: save(lead)
+    R->>DB: INSERT INTO leads...
+    DB-->>R: Lead (avec ID)
+    R-->>S: Lead sauvegardé
+    S->>S: Convertir en DTO
+    S-->>CT: LeadDto
+    CT-->>C: 200 OK {JSON}
+```
+
+### Exemple concret : Soumission d'un formulaire
 
 ```
-Client                Controller           Service            Repository          DB
-  |                       |                   |                   |                |
-  |-- POST /api/contact ->|                   |                   |                |
-  |                       |                   |                   |                |
-  |                       |-- createLead() -->|                   |                |
-  |                       |                   |                   |                |
-  |                       |                   |-- save(lead) ---->|                |
-  |                       |                   |                   |                |
-  |                       |                   |                   |-- INSERT ----->|
-  |                       |                   |                   |                |
-  |                       |                   |                   |<-- OK ---------|
-  |                       |                   |                   |                |
-  |                       |                   |<-- Lead saved ----|                |
-  |                       |                   |                   |                |
-  |                       |<-- LeadDto -------|                   |                |
-  |                       |                   |                   |                |
-  |<-- 200 OK (JSON) -----|                   |                   |                |
+1. Client envoie POST /api/contact avec JSON
+2. ContactController reçoit la requête
+   - Valide les données (@Valid)
+   - Appelle leadService.createLead()
+3. LeadService traite la demande
+   - Crée l'entité Lead
+   - Sauvegarde via repository
+   - Envoie les emails
+   - Convertit en DTO
+4. Controller renvoie 200 OK avec le DTO
 ```
 
 ---
 
 ## 4. Avantages de cette architecture
 
-### 4.1 Separation des preoccupations
+### 4.1 Séparation des préoccupations
 
-Chaque couche a une responsabilite unique et bien definie.
+```mermaid
+graph TB
+    subgraph "Responsabilité unique"
+        A[Controller] -->|"Que HTTP"| A1[Routes, Validation, Réponses]
+        B[Service] -->|"Que Métier"| B1[Règles, Calculs, Coordination]
+        C[Repository] -->|"Que Données"| C1[CRUD, Requêtes]
+    end
+```
 
-### 4.2 Testabilite
+Chaque couche a une responsabilité unique et bien définie.
+
+### 4.2 Testabilité
 
 ```java
 // On peut tester le service en mockant le repository
@@ -225,26 +279,47 @@ void createLead_shouldSaveAndReturnDto() {
     
     // Assert
     assertNotNull(result);
+    verify(leadRepository).save(any());
 }
 ```
 
-### 4.3 Maintenabilite
+### 4.3 Maintenabilité
 
-Modifier une couche n'impacte pas les autres (si l'interface est preservee).
+Modifier une couche n'impacte pas les autres (si l'interface est préservée).
 
-### 4.4 Reutilisabilite
+```mermaid
+graph LR
+    A[Changer le Controller] -.->|"N'impacte pas"| B[Service]
+    C[Changer la DB] -.->|"N'impacte pas"| D[Service]
+```
 
-Un service peut etre utilise par plusieurs controllers.
+### 4.4 Réutilisabilité
 
-### 4.5 Scalabilite
+Un service peut être utilisé par plusieurs controllers.
 
-Les couches peuvent etre deployees separement si necessaire.
+```mermaid
+graph TB
+    A[API Controller] --> S[LeadService]
+    B[Admin Controller] --> S
+    C[Batch Job] --> S
+```
+
+### 4.5 Scalabilité
+
+Les couches peuvent être déployées séparément si nécessaire (microservices).
 
 ---
 
-## 5. Regles a respecter
+## 5. Règles à respecter
 
 ### Ce qui est permis
+
+```mermaid
+graph TB
+    A[Controller] -->|"✅ Peut appeler"| B[Service]
+    B -->|"✅ Peut appeler"| C[Repository]
+    B -->|"✅ Peut appeler"| D[Autre Service]
+```
 
 | Couche | Peut appeler |
 |--------|--------------|
@@ -253,6 +328,13 @@ Les couches peuvent etre deployees separement si necessaire.
 | Repository | (Rien, utilise JPA) |
 
 ### Ce qui est interdit
+
+```mermaid
+graph TB
+    A[Controller] -->|"❌ Interdit"| B[Repository]
+    C[Repository] -->|"❌ Interdit"| D[Service]
+    E[Service] -->|"❌ Interdit"| F[Controller]
+```
 
 | Couche | Ne doit PAS appeler |
 |--------|---------------------|
@@ -263,7 +345,7 @@ Les couches peuvent etre deployees separement si necessaire.
 ### Mauvaise pratique
 
 ```java
-// MAUVAIS: Controller appelle directement le Repository
+// ❌ MAUVAIS: Controller appelle directement le Repository
 @RestController
 public class BadController {
     
@@ -272,7 +354,7 @@ public class BadController {
     
     @GetMapping("/leads")
     public List<Lead> getLeads() {
-        return repository.findAll(); // Pas de logique metier!
+        return repository.findAll(); // Pas de logique métier!
     }
 }
 ```
@@ -280,7 +362,7 @@ public class BadController {
 ### Bonne pratique
 
 ```java
-// BON: Controller passe par le Service
+// ✅ BON: Controller passe par le Service
 @RestController
 public class GoodController {
     
@@ -288,30 +370,54 @@ public class GoodController {
     
     @GetMapping("/leads")
     public List<LeadDto> getLeads() {
-        return service.getAllLeads(); // Le service gere la logique
+        return service.getAllLeads(); // Le service gère la logique
     }
 }
 ```
 
 ---
 
-## 6. DTOs et separation des couches
+## 6. DTOs et séparation des couches
+
+### Flux des objets
+
+```mermaid
+flowchart LR
+    subgraph "Client"
+        JSON[JSON]
+    end
+    
+    subgraph "Controller"
+        DTO1[Request DTO]
+        DTO2[Response DTO]
+    end
+    
+    subgraph "Service"
+        CONV[Conversion]
+    end
+    
+    subgraph "Repository"
+        ENT[Entity]
+    end
+    
+    JSON --> DTO1
+    DTO1 --> CONV
+    CONV --> ENT
+    ENT --> CONV
+    CONV --> DTO2
+    DTO2 --> JSON
+```
 
 ### Pourquoi utiliser des DTOs?
 
-```
-Client <---> Controller <---> Service <---> Repository <---> DB
-              (DTO)            (DTO/Entity)   (Entity)
-```
-
-1. **Securite**: Ne pas exposer les champs sensibles (password)
-2. **Flexibilite**: L'API peut evoluer independamment de la base
-3. **Performance**: Ne transferer que les champs necessaires
+1. **Sécurité** : Ne pas exposer les champs sensibles (password)
+2. **Flexibilité** : L'API peut évoluer indépendamment de la base
+3. **Performance** : Ne transférer que les champs nécessaires
 
 ### Exemple
 
 ```java
-// Entite (interne)
+// ❌ Entité (interne) - NE PAS EXPOSER
 @Entity
 public class User {
     private Long id;
@@ -320,7 +426,7 @@ public class User {
     private String role;
 }
 
-// DTO (externe)
+// ✅ DTO (externe) - SÉCURISÉ
 public class UserDto {
     private Long id;
     private String email;
@@ -331,82 +437,193 @@ public class UserDto {
 
 ---
 
-## 7. Points cles a retenir
+## 7. Points clés à retenir
 
-1. **4 couches**: Controller, Service, Repository, Model
-2. **Communication verticale**: Chaque couche n'appelle que la suivante
-3. **Separation des responsabilites**: Une couche = un role
-4. **DTOs**: Separent l'API des entites internes
-5. **Testabilite**: Les couches peuvent etre testees independamment
+```mermaid
+mindmap
+  root((Architecture<br/>en couches))
+    4 couches
+      Controller
+      Service
+      Repository
+      Model
+    Principes
+      Communication verticale
+      Une responsabilité par couche
+      DTOs pour l'API
+    Avantages
+      Testabilité
+      Maintenabilité
+      Réutilisabilité
+```
+
+1. **4 couches** : Controller, Service, Repository, Model
+2. **Communication verticale** : Chaque couche n'appelle que la suivante
+3. **Séparation des responsabilités** : Une couche = un rôle
+4. **DTOs** : Séparent l'API des entités internes
+5. **Testabilité** : Les couches peuvent être testées indépendamment
 
 ---
 
 ## QUIZ 2.1 - Architecture en couches
 
 **1. Combien de couches principales dans une architecture Spring Boot typique?**
-   - a) 2
-   - b) 3
-   - c) 4
-   - d) 5
+- a) 2
+- b) 3
+- c) 4
+- d) 5
 
-**2. Quelle couche contient la logique metier?**
-   - a) Controller
-   - b) Repository
-   - c) Service
-   - d) Model
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Quelle couche recoit les requetes HTTP?**
-   - a) Service
-   - b) Controller
-   - c) Repository
-   - d) Model
+**Réponse : c) 4**
 
-**4. VRAI ou FAUX: Un Controller peut appeler directement un Repository.**
-
-**5. Quelle couche communique avec la base de donnees?**
-   - a) Controller
-   - b) Service
-   - c) Repository
-   - d) Model
-
-**6. Pourquoi utiliser des DTOs?**
-   - a) Pour cacher les champs sensibles
-   - b) Pour permettre l'evolution independante de l'API
-   - c) Pour ameliorer les performances
-   - d) Toutes les reponses ci-dessus
-
-**7. Dans quel ordre les couches sont-elles traversees lors d'une requete?**
-   - a) Controller -> Service -> Repository
-   - b) Repository -> Service -> Controller
-   - c) Service -> Controller -> Repository
-   - d) Model -> Repository -> Service
-
-**8. Completez: Chaque couche n'appelle que la couche _______.**
-
-**9. Quel est l'avantage principal de cette architecture pour les tests?**
-   - a) Plus rapide
-   - b) On peut mocker les dependances
-   - c) Moins de code
-   - d) Pas besoin de tests
-
-**10. Quelle annotation marque un service?**
-   - a) @Controller
-   - b) @Repository
-   - c) @Service
-   - d) @Component
+Les 4 couches sont : Controller (présentation), Service (métier), Repository (données), Model (entités).
+</details>
 
 ---
 
-### REPONSES QUIZ 2.1
+**2. Quelle couche contient la logique métier?**
+- a) Controller
+- b) Repository
+- c) Service
+- d) Model
 
-1. c) 4
-2. c) Service
-3. b) Controller
-4. VRAI (mais c'est une mauvaise pratique)
-5. c) Repository
-6. d) Toutes les reponses ci-dessus
-7. a) Controller -> Service -> Repository
-8. adjacente (ou suivante)
-9. b) On peut mocker les dependances
-10. c) @Service
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : c) Service**
+
+La couche Service contient toute la logique métier : règles business, calculs, coordination des opérations, gestion des transactions.
+</details>
+
+---
+
+**3. Quelle couche reçoit les requêtes HTTP?**
+- a) Service
+- b) Controller
+- c) Repository
+- d) Model
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Controller**
+
+Le Controller (couche présentation) reçoit les requêtes HTTP, valide les données d'entrée, et délègue au Service.
+</details>
+
+---
+
+**4. VRAI ou FAUX : Un Controller peut appeler directement un Repository.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : VRAI (mais c'est une mauvaise pratique)**
+
+Techniquement possible, mais cela viole le principe de séparation des couches. Le Controller devrait toujours passer par le Service pour bénéficier de la logique métier, des transactions, etc.
+</details>
+
+---
+
+**5. Quelle couche communique avec la base de données?**
+- a) Controller
+- b) Service
+- c) Repository
+- d) Model
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) Repository**
+
+Le Repository abstrait l'accès aux données. Il traduit les appels Java en requêtes SQL via JPA/Hibernate.
+</details>
+
+---
+
+**6. Pourquoi utiliser des DTOs?**
+- a) Pour cacher les champs sensibles
+- b) Pour permettre l'évolution indépendante de l'API
+- c) Pour améliorer les performances
+- d) Toutes les réponses ci-dessus
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : d) Toutes les réponses ci-dessus**
+
+Les DTOs permettent de :
+- Masquer les champs sensibles (password)
+- Faire évoluer l'API sans modifier les entités
+- Transférer uniquement les champs nécessaires
+</details>
+
+---
+
+**7. Dans quel ordre les couches sont-elles traversées lors d'une requête?**
+- a) Controller -> Service -> Repository
+- b) Repository -> Service -> Controller
+- c) Service -> Controller -> Repository
+- d) Model -> Repository -> Service
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : a) Controller -> Service -> Repository**
+
+Le flux va du client vers la base : Controller reçoit la requête, Service traite la logique, Repository accède aux données.
+</details>
+
+---
+
+**8. Complétez : Chaque couche n'appelle que la couche _______.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : adjacente (ou suivante)**
+
+C'est le principe de communication verticale : Controller → Service → Repository. Pas de saut de couche!
+</details>
+
+---
+
+**9. Quel est l'avantage principal de cette architecture pour les tests?**
+- a) Plus rapide
+- b) On peut mocker les dépendances
+- c) Moins de code
+- d) Pas besoin de tests
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) On peut mocker les dépendances**
+
+Grâce à la séparation, on peut tester le Service en mockant le Repository, tester le Controller en mockant le Service, etc.
+</details>
+
+---
+
+**10. Quelle annotation marque un service?**
+- a) @Controller
+- b) @Repository
+- c) @Service
+- d) @Component
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @Service**
+
+@Service est le stéréotype Spring pour la couche métier. Les autres sont : @Controller/@RestController pour la présentation, @Repository pour les données.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [04 - Structure du projet](04-structure-projet.md) | [06 - Couche Model](06-couche-model.md) |

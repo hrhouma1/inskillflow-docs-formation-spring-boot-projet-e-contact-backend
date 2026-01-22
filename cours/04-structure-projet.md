@@ -2,118 +2,195 @@
 
 ## Objectifs du chapitre
 
-- Connaitre l'organisation standard d'un projet Spring Boot
-- Comprendre le role de chaque dossier et fichier
+- Connaître l'organisation standard d'un projet Spring Boot
+- Comprendre le rôle de chaque dossier et fichier
 - Naviguer efficacement dans le code source
 
 ---
 
 ## 1. Vue d'ensemble
 
+### Diagramme de la structure
+
+```mermaid
+graph TB
+    ROOT[projet-e-contact-backend/] --> SRC[src/]
+    ROOT --> TARGET[target/<br/>Généré, ignoré par Git]
+    ROOT --> POM[pom.xml]
+    ROOT --> DOCKER[Dockerfile<br/>docker-compose.yml]
+    ROOT --> GIT[.gitignore]
+    
+    SRC --> MAIN[main/]
+    SRC --> TEST[test/]
+    
+    MAIN --> JAVA[java/<br/>Code source]
+    MAIN --> RES[resources/<br/>Configuration]
+    
+    TEST --> TJAVA[java/<br/>Tests]
+    
+    style TARGET fill:#9E9E9E,color:#fff
+    style POM fill:#FF9800,color:#fff
+```
+
+### Structure complète
+
 ```
 projet-e-contact-backend/
-|
-|-- src/
-|   |-- main/
-|   |   |-- java/                    # Code source Java
-|   |   |-- resources/               # Configuration et ressources
-|   |-- test/
-|       |-- java/                    # Tests
-|
-|-- target/                          # Build (genere, ignore par Git)
-|
-|-- pom.xml                          # Dependances Maven
-|-- Dockerfile                       # Image Docker
-|-- docker-compose.yml               # Orchestration Docker
-|-- README.md                        # Documentation
-|-- .gitignore                       # Fichiers ignores par Git
+│
+├── src/
+│   ├── main/
+│   │   ├── java/                    # Code source Java
+│   │   └── resources/               # Configuration et ressources
+│   └── test/
+│       └── java/                    # Tests
+│
+├── target/                          # Build (généré, ignoré par Git)
+│
+├── pom.xml                          # Dépendances Maven
+├── Dockerfile                       # Image Docker
+├── docker-compose.yml               # Orchestration Docker
+├── README.md                        # Documentation
+└── .gitignore                       # Fichiers ignorés par Git
 ```
 
 ---
 
 ## 2. Le code source (src/main/java)
 
-### Structure par packages
+### Organisation par packages
+
+```mermaid
+graph TB
+    ROOT[com.example.contact] --> APP[ContactApplication.java<br/>Point d'entrée]
+    ROOT --> CONFIG[config/<br/>Configuration]
+    ROOT --> CTRL[controller/<br/>Endpoints REST]
+    ROOT --> DTO[dto/<br/>Objets de transfert]
+    ROOT --> EXC[exception/<br/>Gestion des erreurs]
+    ROOT --> MODEL[model/<br/>Entités JPA]
+    ROOT --> REPO[repository/<br/>Accès données]
+    ROOT --> SEC[security/<br/>Sécurité JWT]
+    ROOT --> SVC[service/<br/>Logique métier]
+    
+    style APP fill:#4CAF50,color:#fff
+```
+
+### Structure détaillée par packages
 
 ```
 com.example.contact/
-|
-|-- ContactApplication.java          # Point d'entree
-|
-|-- config/                          # Configuration
-|   |-- DataInitializer.java
-|   |-- OpenApiConfig.java
-|   |-- SecurityConfig.java
-|   |-- UserDetailsConfig.java
-|
-|-- controller/                      # Endpoints REST
-|   |-- AuthController.java
-|   |-- ContactController.java
-|   |-- LeadController.java
-|
-|-- dto/                             # Data Transfer Objects
-|   |-- request/
-|   |   |-- ContactFormRequest.java
-|   |   |-- LoginRequest.java
-|   |   |-- UpdateStatusRequest.java
-|   |-- response/
-|       |-- AuthResponse.java
-|       |-- LeadDto.java
-|       |-- LeadStatsDto.java
-|       |-- MessageResponse.java
-|
-|-- exception/                       # Gestion des erreurs
-|   |-- GlobalExceptionHandler.java
-|   |-- ResourceNotFoundException.java
-|
-|-- model/                           # Entites JPA
-|   |-- Lead.java
-|   |-- User.java
-|
-|-- repository/                      # Acces donnees
-|   |-- LeadRepository.java
-|   |-- UserRepository.java
-|
-|-- security/                        # Securite JWT
-|   |-- JwtAuthFilter.java
-|   |-- JwtService.java
-|
-|-- service/                         # Logique metier
-    |-- EmailService.java
-    |-- LeadService.java
+│
+├── ContactApplication.java          # Point d'entrée
+│
+├── config/                          # Configuration
+│   ├── DataInitializer.java
+│   ├── OpenApiConfig.java
+│   ├── SecurityConfig.java
+│   └── UserDetailsConfig.java
+│
+├── controller/                      # Endpoints REST
+│   ├── AuthController.java
+│   ├── ContactController.java
+│   └── LeadController.java
+│
+├── dto/                             # Data Transfer Objects
+│   ├── request/
+│   │   ├── ContactFormRequest.java
+│   │   ├── LoginRequest.java
+│   │   └── UpdateStatusRequest.java
+│   └── response/
+│       ├── AuthResponse.java
+│       ├── LeadDto.java
+│       ├── LeadStatsDto.java
+│       └── MessageResponse.java
+│
+├── exception/                       # Gestion des erreurs
+│   ├── GlobalExceptionHandler.java
+│   └── ResourceNotFoundException.java
+│
+├── model/                           # Entités JPA
+│   ├── Lead.java
+│   └── User.java
+│
+├── repository/                      # Accès données
+│   ├── LeadRepository.java
+│   └── UserRepository.java
+│
+├── security/                        # Sécurité JWT
+│   ├── JwtAuthFilter.java
+│   └── JwtService.java
+│
+└── service/                         # Logique métier
+    ├── EmailService.java
+    └── LeadService.java
 ```
 
-### Role de chaque package
+### Rôle de chaque package
 
-| Package | Responsabilite | Annotations typiques |
+```mermaid
+flowchart LR
+    subgraph "Couche Présentation"
+        CTRL[controller/]
+        DTO[dto/]
+    end
+    
+    subgraph "Couche Métier"
+        SVC[service/]
+        EXC[exception/]
+    end
+    
+    subgraph "Couche Données"
+        REPO[repository/]
+        MODEL[model/]
+    end
+    
+    subgraph "Transverse"
+        CONFIG[config/]
+        SEC[security/]
+    end
+    
+    CTRL --> SVC
+    SVC --> REPO
+    REPO --> MODEL
+```
+
+| Package | Responsabilité | Annotations typiques |
 |---------|---------------|---------------------|
-| config | Configuration Spring | @Configuration |
-| controller | Endpoints HTTP | @RestController |
-| dto | Objets de transfert | @Data (Lombok) |
-| exception | Gestion des erreurs | @ControllerAdvice |
-| model | Entites base de donnees | @Entity |
-| repository | Acces aux donnees | @Repository |
-| security | Authentification JWT | @Component |
-| service | Logique metier | @Service |
+| **config** | Configuration Spring | @Configuration |
+| **controller** | Endpoints HTTP | @RestController |
+| **dto** | Objets de transfert | @Data (Lombok) |
+| **exception** | Gestion des erreurs | @ControllerAdvice |
+| **model** | Entités base de données | @Entity |
+| **repository** | Accès aux données | @Repository |
+| **security** | Authentification JWT | @Component |
+| **service** | Logique métier | @Service |
 
 ---
 
 ## 3. Les ressources (src/main/resources)
 
+### Structure
+
+```mermaid
+graph TB
+    RES[resources/] --> APP[application.yml<br/>Configuration principale]
+    RES --> DEV[application-dev.yml<br/>Profil dev]
+    RES --> PROD[application-prod.yml<br/>Profil prod]
+    RES --> STATIC[static/<br/>Fichiers statiques]
+    RES --> TEMPLATES[templates/<br/>Templates HTML]
+```
+
 ```
 resources/
-|
-|-- application.yml                  # Configuration principale
-|-- application-dev.yml              # Config profil dev (optionnel)
-|-- application-prod.yml             # Config profil prod (optionnel)
-|
-|-- static/                          # Fichiers statiques (CSS, JS, images)
-|-- templates/                       # Templates (Thymeleaf, si utilise)
+│
+├── application.yml                  # Configuration principale
+├── application-dev.yml              # Config profil dev (optionnel)
+├── application-prod.yml             # Config profil prod (optionnel)
+│
+├── static/                          # Fichiers statiques (CSS, JS, images)
+└── templates/                       # Templates (Thymeleaf, si utilisé)
 ```
 
-### application.yml
-
-Ce fichier contient toute la configuration de l'application:
+### Exemple de application.yml
 
 ```yaml
 spring:
@@ -155,8 +232,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableAsync           // Active les methodes asynchrones
-@EnableScheduling      // Active les taches planifiees
+@EnableAsync           // Active les méthodes asynchrones
+@EnableScheduling      // Active les tâches planifiées
 public class ContactApplication {
     public static void main(String[] args) {
         SpringApplication.run(ContactApplication.class, args);
@@ -164,11 +241,23 @@ public class ContactApplication {
 }
 ```
 
+### Diagramme : Rôle des annotations
+
+```mermaid
+graph TB
+    APP[@SpringBootApplication] --> CONF[@Configuration<br/>Classe de configuration]
+    APP --> AUTO[@EnableAutoConfiguration<br/>Auto-configuration]
+    APP --> SCAN[@ComponentScan<br/>Scan des composants]
+    
+    ASYNC[@EnableAsync] --> ASYNC1[Permet @Async<br/>Exécution en arrière-plan]
+    SCHED[@EnableScheduling] --> SCHED1[Permet @Scheduled<br/>Tâches planifiées]
+```
+
 ### Points importants
 
-1. **@SpringBootApplication**: Combine @Configuration, @EnableAutoConfiguration, @ComponentScan
-2. **Package racine**: Tous les composants doivent etre dans ce package ou un sous-package
-3. **@EnableAsync**: Permet l'envoi d'emails en arriere-plan
+1. **@SpringBootApplication** : Combine @Configuration, @EnableAutoConfiguration, @ComponentScan
+2. **Package racine** : Tous les composants doivent être dans ce package ou un sous-package
+3. **@EnableAsync** : Permet l'envoi d'emails en arrière-plan
 
 ---
 
@@ -176,23 +265,31 @@ public class ContactApplication {
 
 ### SecurityConfig.java
 
-Configure Spring Security:
-- Endpoints publics vs proteges
+Configure Spring Security :
+- Endpoints publics vs protégés
 - CORS
 - Authentification JWT
 
+```mermaid
+graph TB
+    SEC[SecurityConfig] --> PUBLIC[Endpoints publics<br/>/api/contact, /api/auth/**]
+    SEC --> PROTECTED[Endpoints protégés<br/>/api/admin/**]
+    SEC --> CORS[Configuration CORS]
+    SEC --> JWT[Filtre JWT]
+```
+
 ### OpenApiConfig.java
 
-Configure Swagger/OpenAPI:
+Configure Swagger/OpenAPI :
 - Titre et description de l'API
 - Informations de contact
 - Configuration de l'authentification
 
 ### DataInitializer.java
 
-Initialise les donnees au demarrage:
-- Cree un utilisateur admin par defaut
-- S'execute une seule fois
+Initialise les données au démarrage :
+- Crée un utilisateur admin par défaut
+- S'exécute une seule fois
 
 ### UserDetailsConfig.java
 
@@ -201,6 +298,24 @@ Configure le service de chargement des utilisateurs pour Spring Security.
 ---
 
 ## 6. Controllers (package controller)
+
+### Vue d'ensemble des endpoints
+
+```mermaid
+graph LR
+    subgraph "Public"
+        CONTACT[POST /api/contact<br/>Soumettre formulaire]
+        LOGIN[POST /api/auth/login<br/>Authentification]
+    end
+    
+    subgraph "Protégé Admin"
+        LEADS[GET /api/admin/leads<br/>Liste des leads]
+        LEAD[GET /api/admin/leads/:id<br/>Détail lead]
+        STATUS[PUT /api/admin/leads/:id/status<br/>Modifier statut]
+        DELETE[DELETE /api/admin/leads/:id<br/>Supprimer]
+        STATS[GET /api/admin/leads/stats<br/>Statistiques]
+    end
+```
 
 ### ContactController.java
 
@@ -249,15 +364,37 @@ public class LeadController {
 }
 ```
 
-Endpoints proteges pour la gestion des leads.
+Endpoints protégés pour la gestion des leads.
 
 ---
 
 ## 7. DTOs (package dto)
 
+### Séparation Request / Response
+
+```mermaid
+graph LR
+    subgraph "Request DTOs"
+        CFR[ContactFormRequest<br/>Formulaire de contact]
+        LR[LoginRequest<br/>Connexion]
+        USR[UpdateStatusRequest<br/>Mise à jour statut]
+    end
+    
+    subgraph "Response DTOs"
+        AR[AuthResponse<br/>Token JWT]
+        LD[LeadDto<br/>Données lead]
+        LS[LeadStatsDto<br/>Statistiques]
+        MR[MessageResponse<br/>Message générique]
+    end
+    
+    Client -->|Envoie| CFR
+    Client -->|Envoie| LR
+    LD -->|Reçoit| Client
+```
+
 ### Request DTOs
 
-Objets recus du client:
+Objets reçus du client :
 
 ```java
 // ContactFormRequest.java
@@ -282,7 +419,7 @@ public class ContactFormRequest {
 
 ### Response DTOs
 
-Objets envoyes au client:
+Objets envoyés au client :
 
 ```java
 // LeadDto.java
@@ -303,6 +440,45 @@ public class LeadDto {
 ---
 
 ## 8. Model (package model)
+
+### Diagramme des entités
+
+```mermaid
+erDiagram
+    LEAD {
+        Long id PK
+        String fullName
+        String email
+        String company
+        String phone
+        RequestType requestType
+        String message
+        LeadStatus status
+        LocalDateTime createdAt
+    }
+    
+    USER {
+        Long id PK
+        String email UK
+        String password
+        Role role
+    }
+    
+    LEAD_STATUS {
+        NEW
+        CONTACTED
+        CONVERTED
+        LOST
+    }
+    
+    REQUEST_TYPE {
+        INFO
+        DEMO
+        SUPPORT
+        PARTNERSHIP
+        OTHER
+    }
+```
 
 ### Lead.java
 
@@ -377,89 +553,199 @@ public class LeadService {
     private final EmailService emailService;
     
     public LeadDto createLead(ContactFormRequest request) {
-        // Logique metier
+        // Logique métier
     }
 }
 ```
 
 ---
 
-## 11. Points cles a retenir
+## 11. Points clés à retenir
 
-1. **Un package = une responsabilite**
-2. **La classe principale** doit etre a la racine des packages
+```mermaid
+mindmap
+  root((Structure<br/>Spring Boot))
+    src/main/java
+      Un package = une responsabilité
+      Classe principale à la racine
+    src/main/resources
+      application.yml
+      Profils
+    Packages
+      controller - HTTP
+      service - Métier
+      repository - Données
+      model - Entités
+      dto - Transfert
+```
+
+1. **Un package = une responsabilité**
+2. **La classe principale** doit être à la racine des packages
 3. **application.yml** centralise la configuration
-4. **Les DTOs** separent l'API des entites internes
+4. **Les DTOs** séparent l'API des entités internes
 5. **Les conventions** permettent l'auto-configuration
 
 ---
 
 ## QUIZ 1.4 - Structure du projet
 
-**1. Ou se trouve le code source Java?**
-   - a) src/java
-   - b) src/main/java
-   - c) java/src
-   - d) main/java
+**1. Où se trouve le code source Java?**
+- a) src/java
+- b) src/main/java
+- c) java/src
+- d) main/java
 
-**2. Quel package contient les entites JPA?**
-   - a) entity
-   - b) domain
-   - c) model
-   - d) persistence
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Ou est le fichier application.yml?**
-   - a) src/main/java
-   - b) src/main/resources
-   - c) config/
-   - d) A la racine du projet
+**Réponse : b) src/main/java**
 
-**4. Quel package contient la logique metier?**
-   - a) controller
-   - b) repository
-   - c) service
-   - d) business
-
-**5. VRAI ou FAUX: Les DTOs doivent avoir les memes champs que les entites.**
-
-**6. Quelle annotation marque une classe de configuration?**
-   - a) @Config
-   - b) @Settings
-   - c) @Configuration
-   - d) @Setup
-
-**7. Quel dossier est genere par Maven et ignore par Git?**
-   - a) src/
-   - b) build/
-   - c) target/
-   - d) out/
-
-**8. Completez: Un _______ definit l'interface pour acceder aux donnees.**
-
-**9. Pourquoi separer request et response dans les DTOs?**
-   - a) Pour la securite
-   - b) Pour eviter d'exposer des champs sensibles
-   - c) Pour permettre des validations differentes
-   - d) Toutes les reponses ci-dessus
-
-**10. Quelle classe doit etre a la racine du package principal?**
-   - a) MainController
-   - b) Application (classe avec @SpringBootApplication)
-   - c) Config
-   - d) Bootstrap
+C'est la convention Maven standard. Le code source principal est dans src/main/java, les tests dans src/test/java.
+</details>
 
 ---
 
-### REPONSES QUIZ 1.4
+**2. Quel package contient les entités JPA?**
+- a) entity
+- b) domain
+- c) model
+- d) persistence
 
-1. b) src/main/java
-2. c) model
-3. b) src/main/resources
-4. c) service
-5. FAUX (les DTOs peuvent avoir des champs differents)
-6. c) @Configuration
-7. c) target/
-8. Repository
-9. d) Toutes les reponses ci-dessus
-10. b) Application (classe avec @SpringBootApplication)
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : c) model**
+
+Dans notre projet, les entités JPA (Lead, User) sont dans le package `model`. D'autres conventions utilisent `entity` ou `domain`, mais `model` est courant.
+</details>
+
+---
+
+**3. Où est le fichier application.yml?**
+- a) src/main/java
+- b) src/main/resources
+- c) config/
+- d) À la racine du projet
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) src/main/resources**
+
+Les fichiers de configuration et ressources sont dans src/main/resources. Ce dossier est inclus dans le classpath de l'application.
+</details>
+
+---
+
+**4. Quel package contient la logique métier?**
+- a) controller
+- b) repository
+- c) service
+- d) business
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) service**
+
+Le package `service` contient les classes avec l'annotation @Service qui implémentent la logique métier de l'application.
+</details>
+
+---
+
+**5. VRAI ou FAUX : Les DTOs doivent avoir les mêmes champs que les entités.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : FAUX**
+
+Les DTOs peuvent avoir des champs différents. Par exemple, un Response DTO n'inclura jamais le mot de passe, et un Request DTO n'aura pas l'id ni createdAt qui sont générés automatiquement.
+</details>
+
+---
+
+**6. Quelle annotation marque une classe de configuration?**
+- a) @Config
+- b) @Settings
+- c) @Configuration
+- d) @Setup
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @Configuration**
+
+Cette annotation indique à Spring que la classe contient des définitions de beans et de la configuration.
+</details>
+
+---
+
+**7. Quel dossier est généré par Maven et ignoré par Git?**
+- a) src/
+- b) build/
+- c) target/
+- d) out/
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) target/**
+
+Le dossier target/ contient les fichiers compilés et le JAR. Il est recréé à chaque build et doit figurer dans .gitignore.
+</details>
+
+---
+
+**8. Complétez : Un _______ définit l'interface pour accéder aux données.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : Repository**
+
+Les Repository sont des interfaces qui étendent JpaRepository et définissent les méthodes d'accès aux données. Spring génère automatiquement l'implémentation.
+</details>
+
+---
+
+**9. Pourquoi séparer request et response dans les DTOs?**
+- a) Pour la sécurité
+- b) Pour éviter d'exposer des champs sensibles
+- c) Pour permettre des validations différentes
+- d) Toutes les réponses ci-dessus
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : d) Toutes les réponses ci-dessus**
+
+La séparation permet de :
+- Ne pas exposer les champs sensibles (password)
+- Valider uniquement les données entrantes
+- Avoir des structures différentes (l'id n'est pas dans la request)
+</details>
+
+---
+
+**10. Quelle classe doit être à la racine du package principal?**
+- a) MainController
+- b) Application (classe avec @SpringBootApplication)
+- c) Config
+- d) Bootstrap
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Application (classe avec @SpringBootApplication)**
+
+La classe principale avec @SpringBootApplication doit être à la racine du package pour que le @ComponentScan trouve tous les composants dans les sous-packages.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [03 - Maven et dépendances](03-maven-dependances.md) | [05 - Architecture en couches](05-architecture-couches.md) |
