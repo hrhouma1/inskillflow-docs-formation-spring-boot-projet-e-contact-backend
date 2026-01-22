@@ -2,49 +2,83 @@
 
 ## Objectifs du chapitre
 
-- Comprendre la hierarchie des exceptions
+- Comprendre la hiérarchie des exceptions
 - Distinguer checked et unchecked exceptions
-- Creer des exceptions personnalisees
+- Créer des exceptions personnalisées
+- Appliquer les bonnes pratiques
 
 ---
 
-## 1. Hierarchie des exceptions
+## 1. Hiérarchie des exceptions
 
-### Arbre complet
+### Diagramme : Arbre des exceptions
 
+```mermaid
+graph TB
+    T[Throwable] --> E[Error]
+    T --> EX[Exception]
+    
+    E --> OOM["OutOfMemoryError"]
+    E --> SOE["StackOverflowError"]
+    E --> VE["VirtualMachineError"]
+    
+    EX --> RE[RuntimeException]
+    EX --> IOE["IOException"]
+    EX --> SQLE["SQLException"]
+    
+    RE --> NPE["NullPointerException"]
+    RE --> IAE["IllegalArgumentException"]
+    RE --> ISE["IllegalStateException"]
+    RE --> RNFE["ResourceNotFoundException<br/>(custom)"]
+    
+    style E fill:#f44336,color:#fff
+    style RE fill:#FF9800,color:#fff
+    style IOE fill:#2196F3,color:#fff
+    style SQLE fill:#2196F3,color:#fff
 ```
-Throwable
-|
-+-- Error (erreurs systeme, ne pas attraper)
-|   |
-|   +-- OutOfMemoryError
-|   +-- StackOverflowError
-|
-+-- Exception
-    |
-    +-- RuntimeException (unchecked)
-    |   |
-    |   +-- NullPointerException
-    |   +-- IllegalArgumentException
-    |   +-- IllegalStateException
-    |   +-- ResourceNotFoundException (custom)
-    |
-    +-- IOException (checked)
-    +-- SQLException (checked)
-```
+
+### Les deux familles
+
+| Type | Classe parente | À gérer? | Exemple |
+|------|---------------|----------|---------|
+| Error | Error | Non (fatal) | OutOfMemoryError |
+| Checked | Exception | Oui (obligatoire) | IOException |
+| Unchecked | RuntimeException | Non (optionnel) | NullPointerException |
 
 ---
 
 ## 2. Checked vs Unchecked
 
+### Diagramme comparatif
+
+```mermaid
+graph TB
+    subgraph "Checked Exceptions"
+        C1["Héritent de Exception"]
+        C2["DOIVENT être gérées"]
+        C3["Compilation échoue sinon"]
+        C4["Erreurs récupérables"]
+    end
+    
+    subgraph "Unchecked Exceptions"
+        U1["Héritent de RuntimeException"]
+        U2["Pas obligé de gérer"]
+        U3["Compilation OK"]
+        U4["Erreurs de programmation"]
+    end
+    
+    style C1 fill:#2196F3,color:#fff
+    style U1 fill:#FF9800,color:#fff
+```
+
 ### Checked Exceptions
 
-- Heritent de `Exception` (pas `RuntimeException`)
-- Doivent etre declarees ou attrapees
-- Utilisees pour des erreurs recuperables
+- Héritent de `Exception` (mais pas `RuntimeException`)
+- **Doivent** être déclarées (`throws`) ou attrapées (`catch`)
+- Utilisées pour des erreurs récupérables
 
 ```java
-// DOIT etre gere
+// DOIT être géré - sinon erreur de compilation!
 public void readFile() throws IOException {
     FileReader reader = new FileReader("file.txt");
 }
@@ -61,9 +95,9 @@ public void readFile() {
 
 ### Unchecked Exceptions (RuntimeException)
 
-- Heritent de `RuntimeException`
-- N'ont pas besoin d'etre declarees
-- Utilisees pour des erreurs de programmation
+- Héritent de `RuntimeException`
+- **N'ont pas besoin** d'être déclarées
+- Utilisées pour des erreurs de programmation (bugs)
 
 ```java
 // Pas besoin de try/catch ou throws
@@ -74,37 +108,73 @@ public void process(String data) {
 }
 ```
 
+### Quand utiliser quoi?
+
+```mermaid
+flowchart TD
+    Q[Exception à créer] --> Q1{Erreur récupérable?}
+    Q1 -->|Oui| C[Checked Exception]
+    Q1 -->|Non| Q2{Erreur de programmation?}
+    Q2 -->|Oui| U[Unchecked Exception]
+    Q2 -->|Non| Q3{API REST?}
+    Q3 -->|Oui| U
+    Q3 -->|Non| C
+    
+    style C fill:#2196F3,color:#fff
+    style U fill:#FF9800,color:#fff
+```
+
 ---
 
 ## 3. Exceptions courantes
 
-### RuntimeException
+### RuntimeException (Unchecked)
 
-| Exception | Cause |
-|-----------|-------|
-| NullPointerException | Acces a un objet null |
-| IllegalArgumentException | Argument invalide |
-| IllegalStateException | Etat invalide |
-| IndexOutOfBoundsException | Index hors limites |
-| NumberFormatException | Format de nombre invalide |
-| ClassCastException | Cast impossible |
+```mermaid
+graph TB
+    RE[RuntimeException] --> NPE["NullPointerException<br/>Accès à null"]
+    RE --> IAE["IllegalArgumentException<br/>Argument invalide"]
+    RE --> ISE["IllegalStateException<br/>État invalide"]
+    RE --> IOOB["IndexOutOfBoundsException<br/>Index hors limites"]
+    RE --> NFE["NumberFormatException<br/>Format de nombre invalide"]
+    RE --> CCE["ClassCastException<br/>Cast impossible"]
+```
+
+| Exception | Cause | Exemple |
+|-----------|-------|---------|
+| NullPointerException | Accès à un objet null | `null.toString()` |
+| IllegalArgumentException | Argument invalide | `age = -5` |
+| IllegalStateException | État invalide | `close()` appelé 2 fois |
+| IndexOutOfBoundsException | Index hors limites | `list.get(100)` |
+| NumberFormatException | Format invalide | `Integer.parseInt("abc")` |
 
 ### Checked Exceptions
 
-| Exception | Cause |
-|-----------|-------|
-| IOException | Erreur I/O |
-| SQLException | Erreur SQL |
-| FileNotFoundException | Fichier non trouve |
-| ParseException | Erreur de parsing |
+| Exception | Cause | Doit être gérée |
+|-----------|-------|-----------------|
+| IOException | Erreur I/O | Oui |
+| SQLException | Erreur SQL | Oui |
+| FileNotFoundException | Fichier non trouvé | Oui |
+| ParseException | Erreur de parsing | Oui |
 
 ---
 
-## 4. Creer des exceptions personnalisees
+## 4. Créer des exceptions personnalisées
 
-### Pour les APIs REST
+### Diagramme : Décision
 
-Heriter de `RuntimeException` (unchecked) est recommande:
+```mermaid
+flowchart TD
+    A[Créer une exception] --> B{Pour une API REST?}
+    B -->|Oui| C["extends RuntimeException<br/>(recommandé)"]
+    B -->|Non| D{Erreur récupérable<br/>par l'appelant?}
+    D -->|Oui| E["extends Exception"]
+    D -->|Non| C
+    
+    style C fill:#4CAF50,color:#fff
+```
+
+### Pour les APIs REST (recommandé)
 
 ```java
 public class ResourceNotFoundException extends RuntimeException {
@@ -114,7 +184,7 @@ public class ResourceNotFoundException extends RuntimeException {
     }
     
     public ResourceNotFoundException(String resource, Long id) {
-        super(String.format("%s non trouve avec l'ID %d", resource, id));
+        super(String.format("%s non trouvé avec l'ID %d", resource, id));
     }
 }
 ```
@@ -136,6 +206,16 @@ public class LeadService {
 
 ## 5. Exceptions du projet
 
+### Structure recommandée
+
+```mermaid
+graph TB
+    BASE[RuntimeException] --> RNF["ResourceNotFoundException<br/>Ressource non trouvée<br/>→ 404"]
+    BASE --> DRE["DuplicateResourceException<br/>Doublon<br/>→ 409"]
+    BASE --> BE["BusinessException<br/>Règle métier violée<br/>→ 400"]
+    BASE --> AE["AuthenticationException<br/>Auth échouée<br/>→ 401"]
+```
+
 ### ResourceNotFoundException.java
 
 ```java
@@ -152,14 +232,14 @@ public class ResourceNotFoundException extends RuntimeException {
 ### Autres exceptions utiles
 
 ```java
-// Doublon
+// Doublon (email déjà existant)
 public class DuplicateResourceException extends RuntimeException {
     public DuplicateResourceException(String message) {
         super(message);
     }
 }
 
-// Validation metier
+// Validation métier
 public class BusinessException extends RuntimeException {
     public BusinessException(String message) {
         super(message);
@@ -178,9 +258,18 @@ public class AuthenticationException extends RuntimeException {
 
 ## 6. Lancer des exceptions
 
-### throw
+### throw vs throws
 
-Lance une exception.
+```mermaid
+graph LR
+    THROW["throw<br/>Lance une exception"]
+    THROWS["throws<br/>Déclare qu'une méthode peut lever"]
+    
+    THROW --> EX["throw new Exception()"]
+    THROWS --> DECL["void method() throws Exception"]
+```
+
+### throw - Lance une exception
 
 ```java
 public void validate(String email) {
@@ -190,9 +279,7 @@ public void validate(String email) {
 }
 ```
 
-### throws
-
-Declare qu'une methode peut lever une exception (checked).
+### throws - Déclare une exception possible (checked)
 
 ```java
 public void sendEmail() throws MessagingException {
@@ -206,11 +293,19 @@ public void sendEmail() throws MessagingException {
 
 ### try-catch
 
+```mermaid
+graph TB
+    TRY[try block] --> SUCCESS{Succès?}
+    SUCCESS -->|Oui| CONTINUE[Continue]
+    SUCCESS -->|Non| CATCH[catch block]
+    CATCH --> HANDLE[Gérer l'erreur]
+```
+
 ```java
 try {
     Lead lead = service.findById(id);
 } catch (ResourceNotFoundException e) {
-    log.error("Lead non trouve: {}", e.getMessage());
+    log.error("Lead non trouvé: {}", e.getMessage());
     // Gestion de l'erreur
 }
 ```
@@ -226,22 +321,22 @@ try {
     log.error("Erreur SQL", e);
 } finally {
     if (conn != null) {
-        conn.close();  // Toujours execute
+        conn.close();  // TOUJOURS exécuté
     }
 }
 ```
 
-### try-with-resources
+### try-with-resources (Java 7+)
 
 ```java
 try (Connection conn = dataSource.getConnection()) {
-    // conn est automatiquement ferme
+    // conn est automatiquement fermé
 } catch (SQLException e) {
     log.error("Erreur SQL", e);
 }
 ```
 
-### Multi-catch
+### Multi-catch (Java 7+)
 
 ```java
 try {
@@ -255,41 +350,42 @@ try {
 
 ## 8. Bonnes pratiques
 
-### 8.1 Preferer RuntimeException pour les APIs
+### 8.1 Préférer RuntimeException pour les APIs
 
 ```java
-// BON pour une API REST
+// ✅ BON pour une API REST
 public class ResourceNotFoundException extends RuntimeException { }
 
-// MOINS BON (oblige a gerer partout)
+// ❌ MOINS BON (oblige à gérer partout)
 public class ResourceNotFoundException extends Exception { }
 ```
 
-### 8.2 Messages clairs
+### 8.2 Messages clairs et contextuels
 
 ```java
-// MAUVAIS
+// ❌ MAUVAIS
 throw new RuntimeException("Error");
 
-// BON
-throw new ResourceNotFoundException("Lead non trouve avec l'ID 123");
+// ✅ BON
+throw new ResourceNotFoundException("Lead non trouvé avec l'ID 123");
+throw new DuplicateResourceException("Email 'test@example.com' déjà utilisé");
 ```
 
-### 8.3 Ne pas attraper Exception generique
+### 8.3 Ne pas attraper Exception générique
 
 ```java
-// MAUVAIS
+// ❌ MAUVAIS - attrape TOUT, même les bugs
 try {
     // Code
 } catch (Exception e) {
-    // Attrape TOUT, meme les bugs
+    // Masque les vrais problèmes
 }
 
-// BON
+// ✅ BON - spécifique
 try {
     // Code
 } catch (ResourceNotFoundException e) {
-    // Gestion specifique
+    // Gestion spécifique
 }
 ```
 
@@ -308,13 +404,29 @@ try {
 
 ## 9. Exceptions et Spring
 
+### Flux dans un controller
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant CT as Controller
+    participant S as Service
+    participant EH as ExceptionHandler
+    
+    C->>CT: GET /api/leads/999
+    CT->>S: findById(999)
+    S-->>CT: throw ResourceNotFoundException
+    CT->>EH: Exception interceptée
+    EH-->>C: 404 Not Found + JSON
+```
+
 ### Dans un controller
 
 ```java
 @GetMapping("/{id}")
 public ResponseEntity<LeadDto> getLead(@PathVariable Long id) {
-    // Si ResourceNotFoundException est levee, 
-    // elle sera geree par GlobalExceptionHandler
+    // Si ResourceNotFoundException est levée, 
+    // elle sera gérée par GlobalExceptionHandler
     return ResponseEntity.ok(service.findById(id));
 }
 ```
@@ -335,82 +447,191 @@ public class GlobalExceptionHandler {
 
 ---
 
-## 10. Points cles a retenir
+## 10. Points clés à retenir
+
+```mermaid
+mindmap
+  root((Exceptions))
+    Types
+      Checked = obligatoire
+      Unchecked = optionnel
+      Error = fatal
+    Création
+      RuntimeException pour APIs
+      Messages clairs
+    Gestion
+      try-catch spécifique
+      try-with-resources
+      @ExceptionHandler
+    Bonnes pratiques
+      Pas de catch générique
+      Logger puis relancer
+```
 
 1. **RuntimeException** pour les APIs (unchecked)
 2. **Messages clairs** dans les exceptions
-3. **Exceptions personnalisees** pour chaque cas
-4. **@RestControllerAdvice** pour gerer globalement
-5. **Ne pas attraper Exception** generique
+3. **Exceptions personnalisées** pour chaque cas métier
+4. **@RestControllerAdvice** pour gérer globalement
+5. **Ne pas attraper Exception** générique
 
 ---
 
 ## QUIZ 8.1 - Types d'exceptions
 
-**1. Quelle est la difference entre checked et unchecked?**
-   - a) Aucune
-   - b) Checked doit etre declaree, unchecked non
-   - c) Unchecked doit etre declaree, checked non
-   - d) Checked est plus grave
+**1. Quelle est la différence entre checked et unchecked?**
+- a) Aucune
+- b) Checked doit être déclarée, unchecked non
+- c) Unchecked doit être déclarée, checked non
+- d) Checked est plus grave
 
-**2. De quoi herite RuntimeException?**
-   - a) Throwable
-   - b) Error
-   - c) Exception
-   - d) Object
+<details>
+<summary>Voir la réponse</summary>
 
-**3. ResourceNotFoundException devrait heriter de quoi?**
-   - a) Exception
-   - b) RuntimeException
-   - c) Error
-   - d) Throwable
+**Réponse : b) Checked doit être déclarée, unchecked non**
 
-**4. Quelle exception pour un objet null?**
-   - a) NullException
-   - b) NullPointerException
-   - c) ObjectNullException
-   - d) EmptyException
-
-**5. VRAI ou FAUX: Les unchecked exceptions doivent etre declarees avec throws.**
-
-**6. Quel mot-cle lance une exception?**
-   - a) raise
-   - b) throw
-   - c) throws
-   - d) exception
-
-**7. Quel mot-cle declare qu'une methode peut lever une exception?**
-   - a) raise
-   - b) throw
-   - c) throws
-   - d) exception
-
-**8. Completez: try-with-resources ferme automatiquement les _______.**
-
-**9. Pourquoi preferer RuntimeException pour les APIs?**
-   - a) Plus performant
-   - b) Pas besoin de try/catch partout
-   - c) Plus securise
-   - d) Standard Java
-
-**10. Qu'est-ce qu'une checked exception?**
-   - a) Exception verifiee a l'execution
-   - b) Exception qui doit etre declaree ou attrapee
-   - c) Exception de securite
-   - d) Exception systeme
+Les checked exceptions doivent être déclarées avec `throws` ou attrapées avec `catch`. Les unchecked (RuntimeException) sont optionnelles.
+</details>
 
 ---
 
-### REPONSES QUIZ 8.1
+**2. De quoi hérite RuntimeException?**
+- a) Throwable
+- b) Error
+- c) Exception
+- d) Object
 
-1. b) Checked doit etre declaree, unchecked non
-2. c) Exception
-3. b) RuntimeException
-4. b) NullPointerException
-5. FAUX
-6. b) throw
-7. c) throws
-8. ressources (ou AutoCloseable)
-9. b) Pas besoin de try/catch partout
-10. b) Exception qui doit etre declaree ou attrapee
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : c) Exception**
+
+RuntimeException hérite de Exception, qui hérite de Throwable.
+</details>
+
+---
+
+**3. ResourceNotFoundException devrait hériter de quoi?**
+- a) Exception
+- b) RuntimeException
+- c) Error
+- d) Throwable
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) RuntimeException**
+
+Pour une API REST, on préfère RuntimeException car elle n'oblige pas à gérer l'exception partout (unchecked).
+</details>
+
+---
+
+**4. Quelle exception pour un objet null?**
+- a) NullException
+- b) NullPointerException
+- c) ObjectNullException
+- d) EmptyException
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) NullPointerException**
+
+C'est l'exception standard Java pour l'accès à une référence null.
+</details>
+
+---
+
+**5. VRAI ou FAUX : Les unchecked exceptions doivent être déclarées avec throws.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : FAUX**
+
+Les unchecked exceptions (RuntimeException) n'ont pas besoin d'être déclarées. C'est optionnel.
+</details>
+
+---
+
+**6. Quel mot-clé lance une exception?**
+- a) raise
+- b) throw
+- c) throws
+- d) exception
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) throw**
+
+`throw` lance une exception. `throws` déclare qu'une méthode peut lever une exception.
+</details>
+
+---
+
+**7. Quel mot-clé déclare qu'une méthode peut lever une exception?**
+- a) raise
+- b) throw
+- c) throws
+- d) exception
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) throws**
+
+`throws` se place dans la signature de la méthode pour déclarer les exceptions possibles.
+</details>
+
+---
+
+**8. Complétez : try-with-resources ferme automatiquement les _______.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : ressources (ou AutoCloseable)**
+
+try-with-resources ferme automatiquement les objets qui implémentent AutoCloseable (comme Connection, InputStream, etc.).
+</details>
+
+---
+
+**9. Pourquoi préférer RuntimeException pour les APIs?**
+- a) Plus performant
+- b) Pas besoin de try/catch partout
+- c) Plus sécurisé
+- d) Standard Java
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Pas besoin de try/catch partout**
+
+Les RuntimeException ne polluent pas le code avec des try/catch obligatoires. Le GlobalExceptionHandler gère tout centralement.
+</details>
+
+---
+
+**10. Qu'est-ce qu'une checked exception?**
+- a) Exception vérifiée à l'exécution
+- b) Exception qui doit être déclarée ou attrapée
+- c) Exception de sécurité
+- d) Exception système
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Exception qui doit être déclarée ou attrapée**
+
+Le compilateur vérifie que les checked exceptions sont soit déclarées (throws), soit attrapées (catch).
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [34 - Spring Mail Configuration](34-spring-mail-config.md) | [41 - GlobalExceptionHandler](41-global-exception-handler.md) |

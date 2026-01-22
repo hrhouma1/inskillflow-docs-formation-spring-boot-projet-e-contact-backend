@@ -3,33 +3,62 @@
 ## Objectifs du chapitre
 
 - Comprendre le pattern Repository
-- Voir son implementation avec Spring Data
-- Connaitre les bonnes pratiques
+- Maîtriser son implémentation avec Spring Data JPA
+- Appliquer les bonnes pratiques
 
 ---
 
-## 1. Definition
+## 1. Définition
 
 ### Qu'est-ce que le pattern Repository?
 
-Le **Repository** est un pattern qui abstrait l'acces aux donnees. Il fait le lien entre le domaine metier et la couche de persistance.
+Le **Repository** est un pattern de conception qui abstrait l'accès aux données. Il fait le lien entre le domaine métier et la couche de persistance.
 
-### Objectif
+### Diagramme : Rôle du Repository
 
-Isoler la logique metier des details techniques de stockage.
-
+```mermaid
+graph LR
+    SERVICE["Service<br/>(logique métier)"] <--> REPO["Repository<br/>(abstraction)"]
+    REPO <--> DB["Base de données<br/>(PostgreSQL, MongoDB...)"]
+    
+    style REPO fill:#4CAF50,color:#fff
 ```
-Service                  Repository              Base de donnees
-(logique metier)  <--->  (abstraction)    <--->  (PostgreSQL, MongoDB...)
-```
+
+### Objectif principal
+
+**Isoler la logique métier des détails techniques de stockage**.
+
+Le service ne sait pas (et n'a pas besoin de savoir) :
+- Quelle base de données est utilisée
+- Comment les requêtes SQL sont construites
+- Comment les données sont mappées
 
 ---
 
 ## 2. Avantages
 
-### 2.1 Separation des preoccupations
+### Diagramme : Bénéfices
 
-Le service ne connait pas les details de la base de donnees.
+```mermaid
+mindmap
+  root((Repository))
+    Séparation
+      Service = métier
+      Repository = données
+      Responsabilités claires
+    Testabilité
+      Mock facile
+      Tests unitaires
+      Pas de DB requise
+    Flexibilité
+      Changer de DB
+      Multiple sources
+      Évolution facile
+```
+
+### 2.1 Séparation des préoccupations
+
+Le service ne connaît pas les détails de la base de données.
 
 ```java
 // Le service ne sait pas si c'est SQL, MongoDB, ou un fichier
@@ -42,7 +71,7 @@ public class LeadService {
 }
 ```
 
-### 2.2 Testabilite
+### 2.2 Testabilité
 
 Facile de mocker le repository pour les tests.
 
@@ -59,41 +88,52 @@ void shouldReturnActiveLeads() {
 }
 ```
 
-### 2.3 Flexibilite
+### 2.3 Flexibilité
 
-Changer de base de donnees sans modifier la logique metier.
+Changer de base de données sans modifier la logique métier.
 
-```java
-// Interface commune
-public interface LeadRepository {
-    Lead save(Lead lead);
-    Optional<Lead> findById(Long id);
-}
-
-// Implementation PostgreSQL
-public class PostgresLeadRepository implements LeadRepository { }
-
-// Implementation MongoDB
-public class MongoLeadRepository implements LeadRepository { }
+```mermaid
+graph TB
+    INTERFACE["interface LeadRepository"]
+    INTERFACE --> PG["PostgresLeadRepository"]
+    INTERFACE --> MG["MongoLeadRepository"]
+    INTERFACE --> MEM["InMemoryLeadRepository"]
+    
+    SERVICE["LeadService"] --> INTERFACE
 ```
 
 ---
 
-## 3. Implementation manuelle
+## 3. Implémentation manuelle vs Spring Data
 
-### Interface
+### Diagramme comparatif
 
-```java
-public interface LeadRepository {
-    Lead save(Lead lead);
-    Optional<Lead> findById(Long id);
-    List<Lead> findAll();
-    void delete(Lead lead);
-    List<Lead> findByStatus(LeadStatus status);
-}
+```mermaid
+graph TB
+    subgraph "Implémentation manuelle"
+        M1["Interface LeadRepository"]
+        M2["Classe JdbcLeadRepository"]
+        M3["SQL écrit à la main"]
+        M4["Mapping manuel"]
+        M1 --> M2
+        M2 --> M3
+        M2 --> M4
+    end
+    
+    subgraph "Spring Data JPA"
+        S1["Interface LeadRepository"]
+        S2["extends JpaRepository"]
+        S3["SQL généré automatiquement"]
+        S4["Mapping automatique"]
+        S1 --> S2
+        S2 --> S3
+        S2 --> S4
+    end
+    
+    style S2 fill:#4CAF50,color:#fff
 ```
 
-### Implementation avec JDBC
+### Implémentation manuelle (beaucoup de code!)
 
 ```java
 @Repository
@@ -137,23 +177,23 @@ public class JdbcLeadRepository implements LeadRepository {
 
 ---
 
-## 4. Implementation avec Spring Data JPA
+## 4. Spring Data JPA (recommandé)
 
-### Interface (beaucoup plus simple!)
+### Interface simple
 
 ```java
 @Repository
 public interface LeadRepository extends JpaRepository<Lead, Long> {
     
-    // Methodes generees automatiquement:
-    // save(Lead)
-    // findById(Long)
-    // findAll()
-    // delete(Lead)
-    // count()
-    // existsById(Long)
+    // Méthodes générées automatiquement:
+    // - save(Lead)
+    // - findById(Long)
+    // - findAll()
+    // - delete(Lead)
+    // - count()
+    // - existsById(Long)
     
-    // Methodes personnalisees (generees a partir du nom)
+    // Méthodes personnalisées (générées à partir du nom)
     List<Lead> findByStatus(LeadStatus status);
     
     Optional<Lead> findByEmail(String email);
@@ -162,7 +202,19 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
 }
 ```
 
-### Utilisation
+### Diagramme : Hiérarchie des interfaces
+
+```mermaid
+graph BT
+    LEAD["LeadRepository"] --> JPA["JpaRepository<Lead, Long>"]
+    JPA --> PAGING["PagingAndSortingRepository"]
+    PAGING --> CRUD["CrudRepository"]
+    CRUD --> REPO["Repository"]
+    
+    style LEAD fill:#4CAF50,color:#fff
+```
+
+### Utilisation dans le service
 
 ```java
 @Service
@@ -176,7 +228,7 @@ public class LeadService {
         lead.setFullName(request.getFullName());
         lead.setEmail(request.getEmail());
         
-        Lead saved = repository.save(lead);  // JPA genere le SQL
+        Lead saved = repository.save(lead);  // JPA génère le SQL
         
         return mapToDto(saved);
     }
@@ -195,22 +247,53 @@ public class LeadService {
 
 ### Principe
 
-Spring Data genere les requetes SQL a partir du nom de la methode.
+Spring Data génère les requêtes SQL à partir du **nom de la méthode**.
+
+### Diagramme : Composition
+
+```mermaid
+graph LR
+    NAME["findByStatusAndCreatedAtAfter"] --> FIND["find"]
+    NAME --> BY["By"]
+    NAME --> STATUS["Status"]
+    NAME --> AND["And"]
+    NAME --> CREATED["CreatedAt"]
+    NAME --> AFTER["After"]
+    
+    FIND --> SQL1["SELECT"]
+    STATUS --> SQL2["WHERE status = ?"]
+    AND --> SQL3["AND"]
+    CREATED --> SQL4["created_at"]
+    AFTER --> SQL5["> ?"]
+```
 
 ### Exemples
 
-| Methode | SQL genere |
+| Méthode | SQL généré |
 |---------|------------|
-| findByEmail(String) | WHERE email = ? |
-| findByStatusAndRequestType(Status, Type) | WHERE status = ? AND request_type = ? |
-| findByFullNameContaining(String) | WHERE full_name LIKE %?% |
-| findByCreatedAtAfter(LocalDateTime) | WHERE created_at > ? |
-| countByStatus(Status) | SELECT COUNT(*) WHERE status = ? |
-| existsByEmail(String) | SELECT EXISTS(... WHERE email = ?) |
+| `findByEmail(String)` | `WHERE email = ?` |
+| `findByStatusAndRequestType(Status, Type)` | `WHERE status = ? AND request_type = ?` |
+| `findByFullNameContaining(String)` | `WHERE full_name LIKE %?%` |
+| `findByCreatedAtAfter(LocalDateTime)` | `WHERE created_at > ?` |
+| `countByStatus(Status)` | `SELECT COUNT(*) WHERE status = ?` |
+| `existsByEmail(String)` | `SELECT EXISTS(... WHERE email = ?)` |
+| `deleteByStatus(Status)` | `DELETE FROM ... WHERE status = ?` |
+
+### Mots-clés disponibles
+
+```mermaid
+graph TB
+    KW[Mots-clés] --> COMP["Comparaison<br/>Is, Equals, Between"]
+    KW --> LIKE["Recherche<br/>Like, Containing, StartingWith"]
+    KW --> NULL["Null<br/>IsNull, IsNotNull"]
+    KW --> BOOL["Booléen<br/>True, False"]
+    KW --> ORDER["Tri<br/>OrderBy...Asc/Desc"]
+    KW --> LIMIT["Limite<br/>Top, First"]
+```
 
 ---
 
-## 6. Requetes personnalisees
+## 6. Requêtes personnalisées
 
 ### @Query (JPQL)
 
@@ -234,37 +317,53 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
 List<Lead> findLeadsFromLastWeek();
 ```
 
----
-
-## 7. Specification (requetes dynamiques)
-
-### Pour des filtres complexes
+### @Modifying (UPDATE/DELETE)
 
 ```java
-public class LeadSpecifications {
-    
-    public static Specification<Lead> hasStatus(LeadStatus status) {
-        return (root, query, cb) -> 
-            status == null ? null : cb.equal(root.get("status"), status);
-    }
-    
-    public static Specification<Lead> nameContains(String name) {
-        return (root, query, cb) -> 
-            name == null ? null : cb.like(root.get("fullName"), "%" + name + "%");
-    }
-}
+@Modifying
+@Query("UPDATE Lead l SET l.status = :status WHERE l.id = :id")
+int updateStatus(@Param("id") Long id, @Param("status") LeadStatus status);
+```
 
-// Utilisation
-@Service
-public class LeadService {
+---
+
+## 7. Pagination et tri
+
+### Diagramme : Pageable
+
+```mermaid
+graph TB
+    PAGE["Pageable"] --> NUM["page: 0, 1, 2..."]
+    PAGE --> SIZE["size: 10, 20, 50..."]
+    PAGE --> SORT["sort: createdAt,desc"]
     
-    public List<Lead> search(LeadStatus status, String name) {
-        Specification<Lead> spec = Specification
-            .where(LeadSpecifications.hasStatus(status))
-            .and(LeadSpecifications.nameContains(name));
-        
-        return repository.findAll(spec);
-    }
+    RESULT["Page<Lead>"] --> CONTENT["content: List<Lead>"]
+    RESULT --> TOTAL["totalElements: 100"]
+    RESULT --> PAGES["totalPages: 10"]
+```
+
+### Dans le Repository
+
+```java
+public interface LeadRepository extends JpaRepository<Lead, Long> {
+    
+    Page<Lead> findByStatus(LeadStatus status, Pageable pageable);
+    
+    List<Lead> findByStatus(LeadStatus status, Sort sort);
+}
+```
+
+### Dans le Controller
+
+```java
+@GetMapping
+public Page<LeadDto> getAllLeads(
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(defaultValue = "createdAt,desc") String sort) {
+    
+    Pageable pageable = PageRequest.of(page, size, Sort.by(sort.split(",")));
+    return repository.findAll(pageable).map(this::mapToDto);
 }
 ```
 
@@ -272,33 +371,49 @@ public class LeadService {
 
 ## 8. Bonnes pratiques
 
-### 8.1 Interface specifique au domaine
+### 8.1 Noms de méthodes métier
 
 ```java
-// BON: Interface metier
+// ✅ BON: Interface métier
 public interface LeadRepository extends JpaRepository<Lead, Long> {
-    List<Lead> findActiveLeads();  // Nom metier
+    List<Lead> findActiveLeads();  // Nom métier clair
 }
 
-// MOINS BON: Exposition des details techniques
+// ❌ MOINS BON: Exposition des détails techniques
 public interface LeadRepository extends JpaRepository<Lead, Long> {
     List<Lead> findByStatusNotAndDeletedFalseOrderByCreatedAtDesc();
 }
 ```
 
-### 8.2 Pas de logique metier dans le repository
+### 8.2 Pas de logique métier dans le repository
+
+```mermaid
+graph TB
+    subgraph "❌ MAUVAIS"
+        R1["Repository<br/>+ logique métier"]
+    end
+    
+    subgraph "✅ BON"
+        S1["Service<br/>Logique métier"]
+        R2["Repository<br/>Accès données"]
+        S1 --> R2
+    end
+    
+    style R1 fill:#f44336,color:#fff
+    style S1 fill:#4CAF50,color:#fff
+```
 
 ```java
-// MAUVAIS
+// ❌ MAUVAIS
 @Repository
 public interface LeadRepository extends JpaRepository<Lead, Long> {
     default void processAndSave(Lead lead) {
-        lead.setStatus(calculateStatus(lead));  // Logique metier!
+        lead.setStatus(calculateStatus(lead));  // Logique métier!
         save(lead);
     }
 }
 
-// BON: La logique est dans le service
+// ✅ BON: La logique est dans le service
 @Service
 public class LeadService {
     public void processAndSave(Lead lead) {
@@ -311,10 +426,10 @@ public class LeadService {
 ### 8.3 Utiliser Optional
 
 ```java
-// BON
+// ✅ BON
 Optional<Lead> findByEmail(String email);
 
-// MOINS BON (peut retourner null)
+// ❌ MOINS BON (peut retourner null)
 Lead findByEmail(String email);
 ```
 
@@ -352,82 +467,193 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 ---
 
-## 10. Points cles a retenir
+## 10. Points clés à retenir
 
-1. **Repository** abstrait l'acces aux donnees
-2. **Spring Data JPA** genere l'implementation
-3. **Query Methods** creent les requetes a partir du nom
-4. **@Query** pour les requetes personnalisees
-5. **Pas de logique metier** dans le repository
+```mermaid
+mindmap
+  root((Repository))
+    Concept
+      Abstraction données
+      Séparation couches
+      Testabilité
+    Spring Data JPA
+      extends JpaRepository
+      Query Methods
+      @Query JPQL
+    Bonnes pratiques
+      Noms métier
+      Pas de logique métier
+      Utiliser Optional
+    Fonctionnalités
+      Pagination
+      Tri
+      Requêtes dynamiques
+```
+
+1. **Repository** abstrait l'accès aux données
+2. **Spring Data JPA** génère l'implémentation automatiquement
+3. **Query Methods** créent les requêtes à partir du nom
+4. **@Query** pour les requêtes personnalisées
+5. **Pas de logique métier** dans le repository
 
 ---
 
 ## QUIZ 13.1 - Pattern Repository
 
-**1. Quel est le role du pattern Repository?**
-   - a) Gerer les transactions
-   - b) Abstraire l'acces aux donnees
-   - c) Valider les donnees
-   - d) Gerer la securite
+**1. Quel est le rôle du pattern Repository?**
+- a) Gérer les transactions
+- b) Abstraire l'accès aux données
+- c) Valider les données
+- d) Gérer la sécurité
 
-**2. Quelle interface etendre pour Spring Data JPA?**
-   - a) Repository
-   - b) CrudRepository
-   - c) JpaRepository
-   - d) DataRepository
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Comment Spring Data genere-t-il les requetes?**
-   - a) A partir des annotations
-   - b) A partir du nom de la methode
-   - c) A partir du fichier XML
-   - d) Manuellement
+**Réponse : b) Abstraire l'accès aux données**
 
-**4. Que retourne findById()?**
-   - a) L'entite ou null
-   - b) Optional<Entity>
-   - c) L'entite ou exception
-   - d) Liste d'entites
-
-**5. VRAI ou FAUX: Le repository peut contenir de la logique metier.**
-
-**6. Quelle annotation pour une requete JPQL personnalisee?**
-   - a) @Sql
-   - b) @Query
-   - c) @Jpql
-   - d) @CustomQuery
-
-**7. Que genere findByStatusAndRequestType()?**
-   - a) WHERE status = ? OR request_type = ?
-   - b) WHERE status = ? AND request_type = ?
-   - c) WHERE status LIKE ? AND request_type LIKE ?
-   - d) Erreur
-
-**8. Completez: Spring Data JPA genere l'_______ du repository.**
-
-**9. Quel avantage pour les tests unitaires?**
-   - a) Plus rapide
-   - b) Facile a mocker
-   - c) Pas besoin de tests
-   - d) Tests automatiques
-
-**10. Quelle methode verifie l'existence sans charger l'entite?**
-   - a) exists()
-   - b) existsById()
-   - c) hasId()
-   - d) contains()
+Le Repository fait le lien entre la logique métier et la persistance, cachant les détails techniques.
+</details>
 
 ---
 
-### REPONSES QUIZ 13.1
+**2. Quelle interface étendre pour Spring Data JPA?**
+- a) Repository
+- b) CrudRepository
+- c) JpaRepository
+- d) DataRepository
 
-1. b) Abstraire l'acces aux donnees
-2. c) JpaRepository
-3. b) A partir du nom de la methode
-4. b) Optional<Entity>
-5. FAUX (logique metier = service)
-6. b) @Query
-7. b) WHERE status = ? AND request_type = ?
-8. implementation
-9. b) Facile a mocker
-10. b) existsById()
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : c) JpaRepository**
+
+JpaRepository étend CrudRepository et PagingAndSortingRepository, offrant toutes les fonctionnalités JPA.
+</details>
+
+---
+
+**3. Comment Spring Data génère-t-il les requêtes?**
+- a) À partir des annotations
+- b) À partir du nom de la méthode
+- c) À partir du fichier XML
+- d) Manuellement
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) À partir du nom de la méthode**
+
+Les Query Methods analysent le nom de la méthode pour générer la requête SQL appropriée.
+</details>
+
+---
+
+**4. Que retourne findById()?**
+- a) L'entité ou null
+- b) Optional<Entity>
+- c) L'entité ou exception
+- d) Liste d'entités
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Optional<Entity>**
+
+findById() retourne un Optional pour éviter les NullPointerException.
+</details>
+
+---
+
+**5. VRAI ou FAUX : Le repository peut contenir de la logique métier.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : FAUX**
+
+La logique métier appartient au Service. Le Repository ne fait que l'accès aux données.
+</details>
+
+---
+
+**6. Quelle annotation pour une requête JPQL personnalisée?**
+- a) @Sql
+- b) @Query
+- c) @Jpql
+- d) @CustomQuery
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Query**
+
+@Query permet d'écrire des requêtes JPQL ou SQL natives personnalisées.
+</details>
+
+---
+
+**7. Que génère findByStatusAndRequestType()?**
+- a) WHERE status = ? OR request_type = ?
+- b) WHERE status = ? AND request_type = ?
+- c) WHERE status LIKE ? AND request_type LIKE ?
+- d) Erreur
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) WHERE status = ? AND request_type = ?**
+
+Le mot-clé "And" dans le nom de méthode génère une clause AND dans la requête.
+</details>
+
+---
+
+**8. Complétez : Spring Data JPA génère l'_______ du repository.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : implémentation**
+
+À partir de l'interface, Spring Data JPA génère automatiquement une classe d'implémentation au runtime.
+</details>
+
+---
+
+**9. Quel avantage pour les tests unitaires?**
+- a) Plus rapide
+- b) Facile à mocker
+- c) Pas besoin de tests
+- d) Tests automatiques
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Facile à mocker**
+
+L'interface Repository permet de créer facilement des mocks pour tester le Service sans base de données.
+</details>
+
+---
+
+**10. Quelle méthode vérifie l'existence sans charger l'entité?**
+- a) exists()
+- b) existsById()
+- c) hasId()
+- d) contains()
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) existsById()**
+
+existsById() exécute un SELECT EXISTS efficace sans charger l'entité complète.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [58 - Introduction à Docker](58-docker-introduction.md) | [64 - Pattern Service](64-pattern-service.md) |

@@ -1,20 +1,53 @@
-# Chapitre 11.1 - Lombok et reduction du boilerplate
+# Chapitre 11.1 - Lombok et réduction du boilerplate
 
 ## Objectifs du chapitre
 
-- Comprendre le role de Lombok
-- Maitriser les annotations principales
-- Eviter les pieges courants
+- Comprendre le rôle de Lombok
+- Maîtriser les annotations principales
+- Éviter les pièges courants
 
 ---
 
 ## 1. Qu'est-ce que Lombok?
 
-### Definition
+### Définition
 
-**Lombok** est une bibliotheque Java qui genere automatiquement le code repetitif (boilerplate) a la compilation.
+**Lombok** est une bibliothèque Java qui génère automatiquement le code répétitif (boilerplate) à la compilation via des annotations.
 
-### Probleme resolu
+### Diagramme : Lombok en action
+
+```mermaid
+graph LR
+    SRC["Code source<br/>avec @Data"] --> COMP[Compilateur + Lombok]
+    COMP --> BYTE["Bytecode<br/>avec getters/setters/etc."]
+    
+    style COMP fill:#4CAF50,color:#fff
+```
+
+### Problème résolu
+
+```mermaid
+graph TB
+    subgraph "Sans Lombok (50+ lignes)"
+        S1["Champs"]
+        S2["Constructeur vide"]
+        S3["Constructeur avec args"]
+        S4["Getters (x3)"]
+        S5["Setters (x3)"]
+        S6["equals()"]
+        S7["hashCode()"]
+        S8["toString()"]
+    end
+    
+    subgraph "Avec Lombok (5 lignes)"
+        L1["@Data"]
+        L2["Champs"]
+    end
+    
+    style L1 fill:#4CAF50,color:#fff
+```
+
+### Exemple concret
 
 ```java
 // Sans Lombok: 50+ lignes
@@ -59,7 +92,7 @@ public class Lead {
 
 ## 2. Configuration
 
-### Dependance Maven
+### Dépendance Maven
 
 ```xml
 <dependency>
@@ -71,13 +104,38 @@ public class Lead {
 
 ### Plugin IDE
 
-Installer le plugin Lombok dans votre IDE:
-- IntelliJ: Settings > Plugins > "Lombok"
-- VS Code: Extension "Lombok Annotations Support"
+> **Important** : Le plugin Lombok est nécessaire pour que l'IDE comprenne le code généré!
+
+- **IntelliJ** : Settings > Plugins > "Lombok"
+- **VS Code** : Extension "Lombok Annotations Support"
+- **Eclipse** : Installer via le JAR Lombok
 
 ---
 
 ## 3. Annotations principales
+
+### Diagramme : Vue d'ensemble
+
+```mermaid
+mindmap
+  root((Lombok))
+    Accesseurs
+      @Getter
+      @Setter
+    Constructeurs
+      @NoArgsConstructor
+      @AllArgsConstructor
+      @RequiredArgsConstructor
+    Utilitaires
+      @ToString
+      @EqualsAndHashCode
+    Composées
+      @Data
+      @Value
+      @Builder
+    Logging
+      @Slf4j
+```
 
 ### @Getter / @Setter
 
@@ -88,10 +146,11 @@ public class Lead {
     private String name;
 }
 
-// Genere:
+// Génère:
 // public Long getId() { return id; }
 // public void setId(Long id) { this.id = id; }
-// ...
+// public String getName() { return name; }
+// public void setName(String name) { this.name = name; }
 ```
 
 ### @ToString
@@ -103,7 +162,7 @@ public class Lead {
     private String name;
 }
 
-// Genere:
+// Génère:
 // public String toString() {
 //     return "Lead(id=" + id + ", name=" + name + ")";
 // }
@@ -118,7 +177,7 @@ public class Lead {
     private String name;
 }
 
-// Genere equals() et hashCode() bases sur tous les champs
+// Génère equals() et hashCode() basés sur tous les champs
 ```
 
 ### @NoArgsConstructor
@@ -129,7 +188,7 @@ public class Lead {
     private Long id;
 }
 
-// Genere:
+// Génère:
 // public Lead() {}
 ```
 
@@ -142,7 +201,7 @@ public class Lead {
     private String name;
 }
 
-// Genere:
+// Génère:
 // public Lead(Long id, String name) {
 //     this.id = id;
 //     this.name = name;
@@ -151,14 +210,23 @@ public class Lead {
 
 ### @RequiredArgsConstructor
 
+```mermaid
+graph TB
+    REQ["@RequiredArgsConstructor"] --> FINAL["Champs final"]
+    REQ --> NOTNULL["Champs @NonNull"]
+    
+    FINAL --> CONSTR["Dans le constructeur"]
+    NOTNULL --> CONSTR
+```
+
 ```java
 @RequiredArgsConstructor
 public class LeadService {
-    private final LeadRepository repository;  // final = dans le constructeur
-    private EmailService emailService;        // pas final = pas dans le constructeur
+    private final LeadRepository repository;  // final → dans constructeur
+    private EmailService emailService;        // pas final → pas dans constructeur
 }
 
-// Genere:
+// Génère:
 // public LeadService(LeadRepository repository) {
 //     this.repository = repository;
 // }
@@ -166,15 +234,24 @@ public class LeadService {
 
 ---
 
-## 4. Annotations composees
+## 4. Annotations composées
 
 ### @Data
 
-Combine plusieurs annotations:
+```mermaid
+graph TB
+    DATA["@Data"] --> G["@Getter"]
+    DATA --> S["@Setter"]
+    DATA --> TS["@ToString"]
+    DATA --> EH["@EqualsAndHashCode"]
+    DATA --> RAC["@RequiredArgsConstructor"]
+    
+    style DATA fill:#4CAF50,color:#fff
+```
 
 ```java
 @Data
-// Equivalent a:
+// Équivalent à:
 @Getter
 @Setter
 @ToString
@@ -184,7 +261,7 @@ Combine plusieurs annotations:
 
 ### @Value
 
-Pour les objets immutables:
+Pour les objets **immutables** :
 
 ```java
 @Value
@@ -192,13 +269,12 @@ public class LeadId {
     Long id;
 }
 
-// Equivalent a:
-@Getter
-@ToString
-@EqualsAndHashCode
-@AllArgsConstructor
-// + tous les champs sont final et private
-// + pas de setters
+// Équivalent à:
+// - @Getter (pas de @Setter!)
+// - @ToString
+// - @EqualsAndHashCode
+// - @AllArgsConstructor
+// - Tous les champs sont final et private
 ```
 
 ---
@@ -206,6 +282,15 @@ public class LeadId {
 ## 5. @Builder
 
 ### Pattern Builder
+
+```mermaid
+graph LR
+    B["Lead.builder()"] --> FN[".fullName('Jean')"]
+    FN --> EM[".email('jean@ex.com')"]
+    EM --> ST[".status(NEW)"]
+    ST --> BUILD[".build()"]
+    BUILD --> OBJ["Objet Lead"]
+```
 
 ```java
 @Builder
@@ -225,7 +310,7 @@ Lead lead = Lead.builder()
     .build();
 ```
 
-### Avec valeurs par defaut
+### Avec valeurs par défaut
 
 ```java
 @Builder
@@ -242,6 +327,8 @@ public class Lead {
 }
 ```
 
+> **Important** : Sans `@Builder.Default`, les valeurs par défaut sont ignorées par le builder!
+
 ---
 
 ## 6. @Slf4j (Logging)
@@ -254,23 +341,35 @@ public class Lead {
 public class LeadService {
     
     public void createLead(Lead lead) {
-        log.info("Creation du lead: {}", lead.getEmail());
-        log.debug("Details: {}", lead);
+        log.info("Création du lead: {}", lead.getEmail());
+        log.debug("Détails: {}", lead);
         log.error("Erreur!", exception);
     }
 }
 
-// Genere:
+// Génère:
 // private static final Logger log = LoggerFactory.getLogger(LeadService.class);
 ```
 
 ### Niveaux de log
 
+```mermaid
+graph TB
+    LEVELS[Niveaux de log] --> TRACE["TRACE<br/>Détails fins"]
+    LEVELS --> DEBUG["DEBUG<br/>Informations debug"]
+    LEVELS --> INFO["INFO<br/>Infos générales"]
+    LEVELS --> WARN["WARN<br/>Avertissements"]
+    LEVELS --> ERROR["ERROR<br/>Erreurs"]
+    
+    TRACE --> VERB["Plus verbeux"]
+    ERROR --> CRIT["Plus critique"]
+```
+
 | Niveau | Usage |
 |--------|-------|
-| trace | Details fins (rarement utilise) |
+| trace | Détails fins (rarement utilisé) |
 | debug | Informations de debug |
-| info | Informations generales |
+| info | Informations générales |
 | warn | Avertissements |
 | error | Erreurs |
 
@@ -278,7 +377,7 @@ public class LeadService {
 
 ## 7. Cas d'usage dans le projet
 
-### Entite JPA
+### Entité JPA
 
 ```java
 @Entity
@@ -336,20 +435,29 @@ public class LeadDto {
 
 ---
 
-## 8. Pieges a eviter
+## 8. Pièges à éviter
 
-### 8.1 @Data sur les entites JPA
+### 8.1 @Data sur les entités JPA avec relations
+
+```mermaid
+graph TB
+    LEAD["Lead.toString()"] -->|"inclut"| COMMENTS["comments.toString()"]
+    COMMENTS -->|"inclut"| LEAD2["lead.toString()"]
+    LEAD2 -->|"boucle!"| LEAD
+    
+    style LEAD2 fill:#f44336,color:#fff
+```
 
 ```java
-// ATTENTION avec les relations
+// ⚠️ ATTENTION avec les relations
 @Entity
-@Data  // Peut causer des problemes avec @OneToMany
+@Data
 public class Lead {
     @OneToMany(mappedBy = "lead")
     private List<Comment> comments;  // toString/equals peut boucler!
 }
 
-// SOLUTION: Exclure les relations
+// ✅ SOLUTION: Exclure les relations
 @ToString(exclude = "comments")
 @EqualsAndHashCode(exclude = "comments")
 ```
@@ -357,38 +465,63 @@ public class Lead {
 ### 8.2 Oublier @NoArgsConstructor pour JPA
 
 ```java
-// MAUVAIS: JPA a besoin d'un constructeur sans arg
+// ❌ MAUVAIS: JPA a besoin d'un constructeur sans arg
 @AllArgsConstructor
 public class Lead { }
 
-// BON
+// ✅ BON
 @NoArgsConstructor
 @AllArgsConstructor
 public class Lead { }
 ```
 
-### 8.3 @Builder.Default oublie
+### 8.3 @Builder.Default oublié
 
 ```java
+// ❌ MAUVAIS
 @Builder
 public class Lead {
-    private LeadStatus status = LeadStatus.NEW;  // IGNORE par Builder!
+    private LeadStatus status = LeadStatus.NEW;  // IGNORÉ par Builder!
 }
+// Le builder crée un lead avec status = null
 
-// Le builder cree un lead avec status = null
-
-// SOLUTION
-@Builder.Default
-private LeadStatus status = LeadStatus.NEW;
+// ✅ BON
+@Builder
+public class Lead {
+    @Builder.Default
+    private LeadStatus status = LeadStatus.NEW;
+}
 ```
 
 ---
 
-## 9. Points cles a retenir
+## 9. Points clés à retenir
+
+```mermaid
+mindmap
+  root((Lombok))
+    @Data
+      Getters + Setters
+      toString
+      equals/hashCode
+      RequiredArgsConstructor
+    Injection
+      @RequiredArgsConstructor
+      Champs final
+    Builder
+      @Builder
+      @Builder.Default
+    Logging
+      @Slf4j
+    Pièges
+      JPA relations
+      NoArgsConstructor
+      Builder.Default
+```
 
 1. **@Data** = @Getter + @Setter + @ToString + @EqualsAndHashCode + @RequiredArgsConstructor
-2. **@RequiredArgsConstructor** pour l'injection de dependances
-3. **@Builder** pour creer des objets facilement
+2. **@RequiredArgsConstructor** pour l'injection de dépendances
+3. **@Builder** pour créer des objets facilement
 4. **@Slf4j** pour le logging
 5. **Attention** aux relations JPA avec @Data
 
@@ -396,70 +529,160 @@ private LeadStatus status = LeadStatus.NEW;
 
 ## QUIZ 11.1 - Lombok
 
-**1. Que genere @Data?**
-   - a) Seulement getters/setters
-   - b) Getters, setters, toString, equals, hashCode
-   - c) Seulement toString
-   - d) Constructeurs
+**1. Que génère @Data?**
+- a) Seulement getters/setters
+- b) Getters, setters, toString, equals, hashCode
+- c) Seulement toString
+- d) Constructeurs
 
-**2. Quelle annotation pour l'injection par constructeur?**
-   - a) @AllArgsConstructor
-   - b) @NoArgsConstructor
-   - c) @RequiredArgsConstructor
-   - d) @Inject
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Comment utiliser le pattern Builder?**
-   - a) @Build
-   - b) @Builder
-   - c) @Pattern(Builder)
-   - d) @BuilderPattern
+**Réponse : b) Getters, setters, toString, equals, hashCode**
 
-**4. Quelle annotation pour le logging?**
-   - a) @Log
-   - b) @Logger
-   - c) @Slf4j
-   - d) @Logging
-
-**5. VRAI ou FAUX: Lombok genere le code a l'execution.**
-
-**6. Pourquoi @NoArgsConstructor est necessaire pour JPA?**
-   - a) Performance
-   - b) JPA cree les entites avec ce constructeur
-   - c) Obligatoire par Java
-   - d) Pour le logging
-
-**7. Que fait @Builder.Default?**
-   - a) Definit le builder par defaut
-   - b) Preserve les valeurs par defaut dans le builder
-   - c) Cree un builder vide
-   - d) Rien
-
-**8. Completez: @Value cree des objets _______.**
-
-**9. Quel probleme avec @Data et @OneToMany?**
-   - a) Erreur de compilation
-   - b) Boucle infinie dans toString/equals
-   - c) Pas de probleme
-   - d) Erreur JPA
-
-**10. Comment exclure un champ de toString?**
-   - a) @ToString.Exclude
-   - b) @Exclude
-   - c) @ToString(exclude = "champ")
-   - d) a ou c
+@Data combine @Getter, @Setter, @ToString, @EqualsAndHashCode et @RequiredArgsConstructor.
+</details>
 
 ---
 
-### REPONSES QUIZ 11.1
+**2. Quelle annotation pour l'injection par constructeur?**
+- a) @AllArgsConstructor
+- b) @NoArgsConstructor
+- c) @RequiredArgsConstructor
+- d) @Inject
 
-1. b) Getters, setters, toString, equals, hashCode
-2. c) @RequiredArgsConstructor
-3. b) @Builder
-4. c) @Slf4j
-5. FAUX (a la compilation)
-6. b) JPA cree les entites avec ce constructeur
-7. b) Preserve les valeurs par defaut dans le builder
-8. immutables
-9. b) Boucle infinie dans toString/equals
-10. d) a ou c
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : c) @RequiredArgsConstructor**
+
+Elle génère un constructeur avec les champs `final` et `@NonNull`, parfait pour l'injection de dépendances.
+</details>
+
+---
+
+**3. Comment utiliser le pattern Builder?**
+- a) @Build
+- b) @Builder
+- c) @Pattern(Builder)
+- d) @BuilderPattern
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Builder**
+
+@Builder génère une classe interne Builder avec des méthodes fluides pour construire l'objet.
+</details>
+
+---
+
+**4. Quelle annotation pour le logging?**
+- a) @Log
+- b) @Logger
+- c) @Slf4j
+- d) @Logging
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @Slf4j**
+
+@Slf4j génère un logger SLF4J nommé `log` dans la classe.
+</details>
+
+---
+
+**5. VRAI ou FAUX : Lombok génère le code à l'exécution.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : FAUX**
+
+Lombok génère le code à la **compilation**, pas à l'exécution. Le bytecode contient le code complet.
+</details>
+
+---
+
+**6. Pourquoi @NoArgsConstructor est nécessaire pour JPA?**
+- a) Performance
+- b) JPA crée les entités avec ce constructeur
+- c) Obligatoire par Java
+- d) Pour le logging
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) JPA crée les entités avec ce constructeur**
+
+JPA/Hibernate a besoin d'un constructeur sans argument pour instancier les entités lors du chargement depuis la base.
+</details>
+
+---
+
+**7. Que fait @Builder.Default?**
+- a) Définit le builder par défaut
+- b) Préserve les valeurs par défaut dans le builder
+- c) Crée un builder vide
+- d) Rien
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Préserve les valeurs par défaut dans le builder**
+
+Sans @Builder.Default, les valeurs par défaut des champs sont ignorées quand on utilise le builder.
+</details>
+
+---
+
+**8. Complétez : @Value crée des objets _______.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : immutables**
+
+@Value rend tous les champs final et private, sans setters, créant ainsi des objets immutables.
+</details>
+
+---
+
+**9. Quel problème avec @Data et @OneToMany?**
+- a) Erreur de compilation
+- b) Boucle infinie dans toString/equals
+- c) Pas de problème
+- d) Erreur JPA
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Boucle infinie dans toString/equals**
+
+Les relations bidirectionnelles peuvent causer des boucles infinies. Utilisez @ToString(exclude) et @EqualsAndHashCode(exclude).
+</details>
+
+---
+
+**10. Comment exclure un champ de toString?**
+- a) @ToString.Exclude
+- b) @Exclude
+- c) @ToString(exclude = "champ")
+- d) a ou c
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : d) a ou c**
+
+Les deux syntaxes fonctionnent : @ToString.Exclude sur le champ ou @ToString(exclude = "champ") sur la classe.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [50 - OpenAPI et Swagger](50-openapi-swagger.md) | [55 - MapStruct](55-mapstruct.md) |

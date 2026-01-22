@@ -2,30 +2,53 @@
 
 ## Objectifs du chapitre
 
-- Comprendre OpenAPI et Swagger
+- Comprendre la différence entre OpenAPI et Swagger
 - Configurer springdoc-openapi
 - Documenter l'API automatiquement
+- Tester l'API via Swagger UI
 
 ---
 
 ## 1. OpenAPI vs Swagger
 
+### Diagramme : Relation
+
+```mermaid
+graph TB
+    subgraph "OpenAPI (Spécification)"
+        SPEC["Standard ouvert<br/>Format JSON/YAML<br/>Description d'APIs REST"]
+    end
+    
+    subgraph "Swagger (Outils)"
+        UI["Swagger UI<br/>Interface web interactive"]
+        ED["Swagger Editor<br/>Éditeur de spec"]
+        CG["Swagger Codegen<br/>Génération de code"]
+    end
+    
+    SPEC --> UI
+    SPEC --> ED
+    SPEC --> CG
+    
+    style SPEC fill:#2196F3,color:#fff
+    style UI fill:#4CAF50,color:#fff
+```
+
 ### OpenAPI
 
-**OpenAPI** (anciennement Swagger Specification) est une specification standard pour decrire les APIs REST.
+**OpenAPI** (anciennement Swagger Specification) est une spécification standard pour décrire les APIs REST de manière indépendante du langage.
 
 ### Swagger
 
-**Swagger** est un ensemble d'outils pour implementer OpenAPI:
-- **Swagger UI**: Interface web interactive
-- **Swagger Editor**: Editeur de specification
-- **Swagger Codegen**: Generation de code
+**Swagger** est un ensemble d'outils qui implémentent OpenAPI :
+- **Swagger UI** : Interface web interactive pour explorer et tester l'API
+- **Swagger Editor** : Éditeur en ligne de spécifications
+- **Swagger Codegen** : Génération de code client/serveur
 
 ---
 
 ## 2. springdoc-openapi
 
-### Dependance
+### Dépendance Maven
 
 ```xml
 <dependency>
@@ -35,13 +58,22 @@
 </dependency>
 ```
 
-### URLs par defaut
+### URLs par défaut
+
+```mermaid
+graph LR
+    APP[Application] --> SW["/swagger-ui.html<br/>Interface graphique"]
+    APP --> JSON["/v3/api-docs<br/>Spec JSON"]
+    APP --> YAML["/v3/api-docs.yaml<br/>Spec YAML"]
+    
+    style SW fill:#4CAF50,color:#fff
+```
 
 | URL | Description |
 |-----|-------------|
 | /swagger-ui.html | Interface Swagger UI |
-| /v3/api-docs | Specification JSON |
-| /v3/api-docs.yaml | Specification YAML |
+| /v3/api-docs | Spécification JSON |
+| /v3/api-docs.yaml | Spécification YAML |
 
 ---
 
@@ -59,7 +91,7 @@ public class OpenApiConfig {
             .info(new Info()
                 .title("Contact Form API")
                 .version("1.0.0")
-                .description("API REST pour gerer les formulaires de contact et les leads")
+                .description("API REST pour gérer les formulaires de contact et les leads")
                 .contact(new Contact()
                     .name("Support")
                     .email("support@example.com")
@@ -96,7 +128,23 @@ springdoc:
 
 ## 4. Annotations de base
 
-### Sur le controller
+### Diagramme : Hiérarchie des annotations
+
+```mermaid
+graph TB
+    API[OpenAPI] --> TAG["@Tag<br/>Groupe de endpoints"]
+    TAG --> OP["@Operation<br/>Documentation méthode"]
+    OP --> PARAM["@Parameter<br/>Documentation paramètre"]
+    OP --> RESP["@ApiResponse<br/>Documentation réponse"]
+    
+    SCHEMA["@Schema<br/>Documentation DTO"]
+    
+    style TAG fill:#2196F3,color:#fff
+    style OP fill:#4CAF50,color:#fff
+    style SCHEMA fill:#FF9800,color:#fff
+```
+
+### Sur le controller (@Tag)
 
 ```java
 @RestController
@@ -107,7 +155,7 @@ public class LeadController {
 }
 ```
 
-### Sur les methodes
+### Sur les méthodes (@Operation, @ApiResponses)
 
 ```java
 @GetMapping
@@ -120,17 +168,17 @@ public Page<LeadDto> getAllLeads(Pageable pageable) {
 }
 
 @GetMapping("/{id}")
-@Operation(summary = "Recuperer un lead par ID")
+@Operation(summary = "Récupérer un lead par ID")
 @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Lead trouve"),
-    @ApiResponse(responseCode = "404", description = "Lead non trouve")
+    @ApiResponse(responseCode = "200", description = "Lead trouvé"),
+    @ApiResponse(responseCode = "404", description = "Lead non trouvé")
 })
 public LeadDto getById(@PathVariable Long id) {
     return service.findById(id);
 }
 ```
 
-### Sur les parametres
+### Sur les paramètres (@Parameter)
 
 ```java
 @GetMapping
@@ -149,25 +197,41 @@ public Page<LeadDto> search(
 
 ## 5. Documentation des DTOs
 
-### Schema sur le DTO
+### Diagramme : @Schema sur DTO
+
+```mermaid
+classDiagram
+    class ContactFormRequest {
+        <<@Schema>>
+        +String fullName
+        +String email
+        +String company
+        +RequestType requestType
+        +String message
+    }
+    
+    note for ContactFormRequest "Chaque champ a @Schema avec:\n- description\n- example\n- required"
+```
+
+### Exemple complet
 
 ```java
 @Data
-@Schema(description = "Requete de formulaire de contact")
+@Schema(description = "Requête de formulaire de contact")
 public class ContactFormRequest {
     
-    @Schema(description = "Nom complet", example = "Jean Dupont", required = true)
+    @Schema(description = "Nom complet", example = "Jean Dupont", requiredMode = RequiredMode.REQUIRED)
     @NotBlank
     private String fullName;
     
-    @Schema(description = "Adresse email", example = "jean@example.com", required = true)
+    @Schema(description = "Adresse email", example = "jean@example.com", requiredMode = RequiredMode.REQUIRED)
     @Email
     private String email;
     
     @Schema(description = "Nom de l'entreprise", example = "ACME Corp")
     private String company;
     
-    @Schema(description = "Type de demande", example = "INFO", required = true)
+    @Schema(description = "Type de demande", example = "INFO", requiredMode = RequiredMode.REQUIRED)
     @NotNull
     private RequestType requestType;
     
@@ -177,11 +241,11 @@ public class ContactFormRequest {
 }
 ```
 
-### Exemple de reponse
+### DTO de réponse
 
 ```java
 @Data
-@Schema(description = "Lead retourne par l'API")
+@Schema(description = "Lead retourné par l'API")
 public class LeadDto {
     
     @Schema(description = "ID unique", example = "1")
@@ -193,14 +257,33 @@ public class LeadDto {
     @Schema(description = "Statut du lead", example = "NEW")
     private LeadStatus status;
     
-    @Schema(description = "Date de creation", example = "2024-01-15T10:30:00")
+    @Schema(description = "Date de création", example = "2024-01-15T10:30:00")
     private LocalDateTime createdAt;
 }
 ```
 
 ---
 
-## 6. Securite dans Swagger
+## 6. Sécurité dans Swagger
+
+### Diagramme : Authentification JWT
+
+```mermaid
+sequenceDiagram
+    participant U as Utilisateur
+    participant SW as Swagger UI
+    participant API as API
+    
+    U->>API: POST /api/auth/login
+    API-->>U: { token: "eyJ..." }
+    
+    U->>SW: Clic "Authorize"
+    U->>SW: Colle le token
+    
+    U->>SW: Try it out sur /api/admin/leads
+    SW->>API: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
+    API-->>SW: [ leads... ]
+```
 
 ### Afficher le bouton Authorize
 
@@ -218,11 +301,14 @@ public OpenAPI customOpenAPI() {
 }
 ```
 
-### Marquer les endpoints proteges
+### Marquer les endpoints protégés
 
 ```java
 @GetMapping
-@Operation(summary = "Liste des leads", security = @SecurityRequirement(name = "Bearer Authentication"))
+@Operation(
+    summary = "Liste des leads",
+    security = @SecurityRequirement(name = "Bearer Authentication")
+)
 public Page<LeadDto> getAllLeads() {
     return service.findAll();
 }
@@ -232,7 +318,7 @@ public Page<LeadDto> getAllLeads() {
 
 ```java
 @PostMapping
-@Operation(summary = "Soumettre formulaire", security = {})  // Pas de securite
+@Operation(summary = "Soumettre formulaire", security = {})  // Pas de sécurité
 public MessageResponse submit(@RequestBody ContactFormRequest request) {
     return service.create(request);
 }
@@ -266,7 +352,7 @@ public GroupedOpenApi adminApi() {
 
 ```java
 @GetMapping("/internal")
-@Hidden  // N'apparait pas dans Swagger
+@Hidden  // N'apparaît pas dans Swagger
 public String internal() {
     return "hidden";
 }
@@ -276,12 +362,23 @@ public String internal() {
 
 ## 8. Utiliser Swagger UI
 
+### Diagramme : Workflow de test
+
+```mermaid
+flowchart LR
+    A[Ouvrir Swagger UI] --> B[Choisir endpoint]
+    B --> C[Try it out]
+    C --> D[Remplir paramètres]
+    D --> E[Execute]
+    E --> F[Voir réponse]
+```
+
 ### Tester un endpoint
 
 1. Ouvrir http://localhost:8080/swagger-ui.html
 2. Cliquer sur un endpoint
 3. Cliquer "Try it out"
-4. Remplir les parametres
+4. Remplir les paramètres
 5. Cliquer "Execute"
 
 ### Authentification JWT
@@ -300,36 +397,60 @@ public String internal() {
 
 ```java
 @Operation(
-    summary = "Titre court",           // Affiche dans la liste
-    description = "Description detaillee avec exemples et cas d'utilisation"
+    summary = "Titre court",           // Affiché dans la liste
+    description = "Description détaillée avec exemples et cas d'utilisation"
 )
 ```
 
-### 9.2 Exemples realistes
+### 9.2 Exemples réalistes
 
 ```java
-@Schema(example = "jean.dupont@entreprise.com")  // Pas "test@test.com"
-private String email;
+// ❌ MAUVAIS
+@Schema(example = "test@test.com")
+
+// ✅ BON
+@Schema(example = "jean.dupont@entreprise.com")
 ```
 
 ### 9.3 Documenter les erreurs
 
 ```java
 @ApiResponses({
-    @ApiResponse(responseCode = "200", description = "Succes"),
-    @ApiResponse(responseCode = "400", description = "Donnees invalides"),
-    @ApiResponse(responseCode = "401", description = "Non authentifie"),
-    @ApiResponse(responseCode = "404", description = "Non trouve")
+    @ApiResponse(responseCode = "200", description = "Succès"),
+    @ApiResponse(responseCode = "400", description = "Données invalides"),
+    @ApiResponse(responseCode = "401", description = "Non authentifié"),
+    @ApiResponse(responseCode = "404", description = "Non trouvé")
 })
 ```
 
 ---
 
-## 10. Points cles a retenir
+## 10. Points clés à retenir
+
+```mermaid
+mindmap
+  root((OpenAPI/Swagger))
+    Concepts
+      OpenAPI = spécification
+      Swagger = outils
+      springdoc-openapi
+    Annotations
+      @Tag = controller
+      @Operation = méthode
+      @Schema = DTO
+      @Parameter = paramètre
+    Sécurité
+      SecurityScheme
+      Bearer JWT
+      Authorize button
+    URLs
+      /swagger-ui.html
+      /v3/api-docs
+```
 
 1. **springdoc-openapi** pour Spring Boot 3
 2. **@Tag** pour grouper les controllers
-3. **@Operation** pour documenter les methodes
+3. **@Operation** pour documenter les méthodes
 4. **@Schema** pour documenter les DTOs
 5. **SecurityScheme** pour l'authentification JWT
 
@@ -337,70 +458,160 @@ private String email;
 
 ## QUIZ 10.1 - OpenAPI et Swagger
 
-**1. Quelle est la difference entre OpenAPI et Swagger?**
-   - a) Aucune
-   - b) OpenAPI = specification, Swagger = outils
-   - c) Swagger = specification, OpenAPI = outils
-   - d) Deux projets concurrents
+**1. Quelle est la différence entre OpenAPI et Swagger?**
+- a) Aucune
+- b) OpenAPI = spécification, Swagger = outils
+- c) Swagger = spécification, OpenAPI = outils
+- d) Deux projets concurrents
 
-**2. Quelle URL pour Swagger UI par defaut?**
-   - a) /api-docs
-   - b) /swagger
-   - c) /swagger-ui.html
-   - d) /docs
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Quelle annotation pour documenter un controller?**
-   - a) @Api
-   - b) @Tag
-   - c) @Controller
-   - d) @Documented
+**Réponse : b) OpenAPI = spécification, Swagger = outils**
 
-**4. Quelle annotation pour documenter une methode?**
-   - a) @Api
-   - b) @ApiOperation
-   - c) @Operation
-   - d) @Method
-
-**5. VRAI ou FAUX: Swagger peut executer des requetes directement.**
-
-**6. Quelle annotation pour documenter un DTO?**
-   - a) @ApiModel
-   - b) @Schema
-   - c) @Model
-   - d) @Dto
-
-**7. Comment cacher un endpoint de Swagger?**
-   - a) @Ignore
-   - b) @Hidden
-   - c) @Private
-   - d) @NoDoc
-
-**8. Completez: springdoc-openapi genere la specification au format _______.**
-
-**9. Quelle URL pour la specification JSON?**
-   - a) /api-docs
-   - b) /v3/api-docs
-   - c) /openapi.json
-   - d) /swagger.json
-
-**10. Comment authentifier dans Swagger UI?**
-   - a) Login/password
-   - b) Bouton Authorize avec le token
-   - c) Cookie
-   - d) Header manuel
+OpenAPI est la spécification standard pour décrire les APIs REST. Swagger est un ensemble d'outils (UI, Editor, Codegen) qui utilisent cette spécification.
+</details>
 
 ---
 
-### REPONSES QUIZ 10.1
+**2. Quelle URL pour Swagger UI par défaut?**
+- a) /api-docs
+- b) /swagger
+- c) /swagger-ui.html
+- d) /docs
 
-1. b) OpenAPI = specification, Swagger = outils
-2. c) /swagger-ui.html
-3. b) @Tag
-4. c) @Operation
-5. VRAI (Try it out)
-6. b) @Schema
-7. b) @Hidden
-8. JSON (ou YAML)
-9. b) /v3/api-docs
-10. b) Bouton Authorize avec le token
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : c) /swagger-ui.html**
+
+C'est l'URL par défaut de springdoc-openapi pour accéder à l'interface Swagger UI.
+</details>
+
+---
+
+**3. Quelle annotation pour documenter un controller?**
+- a) @Api
+- b) @Tag
+- c) @Controller
+- d) @Documented
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Tag**
+
+@Tag permet de grouper les endpoints d'un controller et de leur donner un nom et une description.
+</details>
+
+---
+
+**4. Quelle annotation pour documenter une méthode?**
+- a) @Api
+- b) @ApiOperation
+- c) @Operation
+- d) @Method
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @Operation**
+
+@Operation permet de documenter une méthode avec un summary, une description, etc.
+</details>
+
+---
+
+**5. VRAI ou FAUX : Swagger peut exécuter des requêtes directement.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : VRAI**
+
+Le bouton "Try it out" de Swagger UI permet d'exécuter des requêtes HTTP directement depuis l'interface.
+</details>
+
+---
+
+**6. Quelle annotation pour documenter un DTO?**
+- a) @ApiModel
+- b) @Schema
+- c) @Model
+- d) @Dto
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Schema**
+
+@Schema permet de documenter les classes DTO et leurs champs avec des descriptions et exemples.
+</details>
+
+---
+
+**7. Comment cacher un endpoint de Swagger?**
+- a) @Ignore
+- b) @Hidden
+- c) @Private
+- d) @NoDoc
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Hidden**
+
+@Hidden empêche un endpoint d'apparaître dans la documentation Swagger.
+</details>
+
+---
+
+**8. Complétez : springdoc-openapi génère la spécification au format _______.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : JSON (ou YAML)**
+
+springdoc-openapi génère automatiquement la spécification OpenAPI en JSON (/v3/api-docs) ou YAML (/v3/api-docs.yaml).
+</details>
+
+---
+
+**9. Quelle URL pour la spécification JSON?**
+- a) /api-docs
+- b) /v3/api-docs
+- c) /openapi.json
+- d) /swagger.json
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) /v3/api-docs**
+
+C'est l'URL par défaut de springdoc-openapi pour la spécification OpenAPI 3 en JSON.
+</details>
+
+---
+
+**10. Comment s'authentifier dans Swagger UI?**
+- a) Login/password
+- b) Bouton Authorize avec le token
+- c) Cookie
+- d) Header manuel
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Bouton Authorize avec le token**
+
+Le bouton "Authorize" (cadenas) permet de saisir le token JWT qui sera automatiquement ajouté aux requêtes.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [45 - Fichiers de configuration](45-fichiers-config.md) | [51 - Documentation des endpoints](51-documentation-endpoints.md) |

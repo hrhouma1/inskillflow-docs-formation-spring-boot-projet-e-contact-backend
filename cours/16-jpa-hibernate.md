@@ -2,75 +2,200 @@
 
 ## Objectifs du chapitre
 
-- Comprendre JPA et Hibernate
-- Connaitre le role de l'ORM
+- Comprendre la différence entre JPA et Hibernate
+- Maîtriser le concept d'ORM
 - Configurer JPA dans Spring Boot
+- Gérer le cycle de vie des entités
 
 ---
 
 ## 1. Qu'est-ce que JPA?
 
-### Definition
+### Définition
 
-**JPA (Java Persistence API)** est une specification Java pour le mapping objet-relationnel (ORM). Elle definit comment les objets Java sont persistes dans une base de donnees relationnelle.
+**JPA (Java Persistence API)** est une spécification Java standard pour le mapping objet-relationnel (ORM). Elle définit comment les objets Java sont persistés dans une base de données relationnelle.
 
-### JPA n'est qu'une specification
+### Diagramme : JPA comme spécification
 
-JPA definit les interfaces et annotations, mais pas l'implementation. Il faut un provider.
+```mermaid
+graph TB
+    subgraph "Spécification JPA"
+        SPEC[JPA - Java Persistence API]
+        ANN["Annotations<br/>@Entity, @Table, @Id"]
+        INT["Interfaces<br/>EntityManager"]
+        JPQL["Langage<br/>JPQL"]
+    end
+    
+    subgraph "Implémentations"
+        HIB[Hibernate]
+        ECL[EclipseLink]
+        OPEN[OpenJPA]
+    end
+    
+    SPEC --> ANN
+    SPEC --> INT
+    SPEC --> JPQL
+    
+    SPEC -.->|"Implémentée par"| HIB
+    SPEC -.->|"Implémentée par"| ECL
+    SPEC -.->|"Implémentée par"| OPEN
+    
+    style HIB fill:#4CAF50,color:#fff
+```
+
+### Analogie
+
+> JPA est comme une prise électrique standardisée. Différents fabricants (Hibernate, EclipseLink) peuvent créer des appareils compatibles avec cette norme.
+
+### JPA n'est qu'une spécification
+
+JPA définit les interfaces et annotations, mais **pas l'implémentation**. Il faut un "provider" (fournisseur) pour exécuter le code.
 
 ---
 
 ## 2. Qu'est-ce qu'Hibernate?
 
-### Definition
+### Définition
 
-**Hibernate** est l'implementation JPA la plus populaire. C'est le provider par defaut de Spring Boot.
+**Hibernate** est l'implémentation JPA la plus populaire et mature. C'est le provider par défaut de Spring Boot.
+
+### Historique
+
+```mermaid
+timeline
+    title Évolution JPA/Hibernate
+    2001 : Hibernate créé (avant JPA)
+    2006 : JPA 1.0 (inspiré d'Hibernate)
+    2009 : JPA 2.0
+    2013 : JPA 2.1
+    2017 : JPA 2.2
+    2020 : Jakarta Persistence 3.0
+```
 
 ### JPA vs Hibernate
 
+```mermaid
+graph LR
+    subgraph "Spécification JPA"
+        J1["@Entity"]
+        J2["EntityManager"]
+        J3["JPQL"]
+    end
+    
+    subgraph "Implémentation Hibernate"
+        H1["HibernateEntityManager"]
+        H2["SessionFactory"]
+        H3["HQL"]
+    end
+    
+    J1 -.->|"Implémente"| H1
+    J2 -.->|"Implémente"| H2
+    J3 -.->|"Extension"| H3
 ```
-JPA (Specification)     Hibernate (Implementation)
--------------------     -------------------------
-@Entity                 HibernateEntityManager
-EntityManager           SessionFactory
-JPQL                    HQL
-```
+
+| JPA (Spécification) | Hibernate (Implémentation) |
+|---------------------|---------------------------|
+| @Entity | Même annotation |
+| EntityManager | HibernateEntityManager |
+| JPQL | HQL (superset) |
+| Standard | Fonctionnalités avancées |
+
+> **Bonne pratique** : Utilisez les annotations JPA standard (`jakarta.persistence.*`) pour rester portable.
 
 ---
 
 ## 3. ORM (Object-Relational Mapping)
 
-### Concept
+### Le problème
+
+```mermaid
+graph TB
+    subgraph "Monde Objet (Java)"
+        OBJ[Objets Java<br/>Classes, héritage, associations]
+    end
+    
+    subgraph "Monde Relationnel (SQL)"
+        TAB[Tables SQL<br/>Lignes, colonnes, clés étrangères]
+    end
+    
+    OBJ <-->|"❓ Comment faire le lien?"| TAB
+```
+
+### La solution : ORM
 
 L'ORM fait le pont entre le monde objet (Java) et le monde relationnel (SQL).
 
-```
-Classe Java            Table SQL
------------            ---------
-Lead                   leads
-  - id                   - id
-  - fullName             - full_name
-  - email                - email
-  - status               - status
+```mermaid
+graph TB
+    subgraph "Java"
+        CLASS["class Lead {<br/>  Long id;<br/>  String fullName;<br/>  String email;<br/>  LeadStatus status;<br/>}"]
+    end
+    
+    subgraph "ORM (Hibernate)"
+        MAP["Mapping automatique"]
+    end
+    
+    subgraph "SQL"
+        TABLE["TABLE leads (<br/>  id BIGINT,<br/>  full_name VARCHAR,<br/>  email VARCHAR,<br/>  status VARCHAR<br/>)"]
+    end
+    
+    CLASS <--> MAP <--> TABLE
+    
+    style MAP fill:#4CAF50,color:#fff
 ```
 
-### Avantages
+### Correspondances
 
-1. **Productivite**: Pas de SQL manuel pour les operations basiques
-2. **Portabilite**: Changer de base facilement
-3. **Typage**: Erreurs detectees a la compilation
-4. **Cache**: Optimisations automatiques
+| Java | SQL |
+|------|-----|
+| Classe | Table |
+| Objet | Ligne |
+| Attribut | Colonne |
+| Association | Clé étrangère |
+
+### Avantages de l'ORM
+
+```mermaid
+mindmap
+  root((ORM))
+    Productivité
+      Pas de SQL manuel
+      CRUD automatique
+      Migrations simples
+    Portabilité
+      Changer de SGBD facilement
+      PostgreSQL → MySQL
+    Sécurité
+      Pas d'injection SQL
+      Paramètres typés
+    Performance
+      Cache de premier niveau
+      Cache de second niveau
+      Lazy loading
+```
+
+1. **Productivité** : Pas de SQL manuel pour les opérations basiques
+2. **Portabilité** : Changer de base de données facilement
+3. **Typage** : Erreurs détectées à la compilation
+4. **Cache** : Optimisations automatiques
 
 ---
 
 ## 4. Configuration dans Spring Boot
 
-### Dependance
+### Dépendance Maven
 
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+
+<!-- Driver de base de données -->
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <scope>runtime</scope>
 </dependency>
 ```
 
@@ -86,46 +211,98 @@ spring:
     
   jpa:
     hibernate:
-      ddl-auto: update           # Strategie de creation de schema
-    show-sql: true               # Affiche les requetes SQL
+      ddl-auto: update           # Stratégie de création de schéma
+    show-sql: true               # Affiche les requêtes SQL
     properties:
       hibernate:
-        format_sql: true         # Formate le SQL affiche
+        format_sql: true         # Formate le SQL affiché
         dialect: org.hibernate.dialect.PostgreSQLDialect
+```
+
+### Diagramme : Configuration
+
+```mermaid
+graph TB
+    APP[Application Spring Boot] --> DS[DataSource]
+    DS --> URL["url: jdbc:postgresql://..."]
+    DS --> USER["username"]
+    DS --> PASS["password"]
+    
+    APP --> JPA[JPA Properties]
+    JPA --> DDL["ddl-auto: update"]
+    JPA --> SQL["show-sql: true"]
+    JPA --> DIALECT["dialect: PostgreSQL"]
 ```
 
 ---
 
-## 5. Strategies ddl-auto
+## 5. Stratégies ddl-auto
+
+### Vue d'ensemble
+
+```mermaid
+graph TB
+    DDL[ddl-auto] --> NONE["none<br/>Aucune action"]
+    DDL --> VALIDATE["validate<br/>Vérifie le schéma"]
+    DDL --> UPDATE["update<br/>Met à jour"]
+    DDL --> CREATE["create<br/>Recrée"]
+    DDL --> DROP["create-drop<br/>Crée et supprime"]
+    
+    NONE -->|"Production"| P1[✅ Recommandé]
+    VALIDATE -->|"Production"| P2[✅ Recommandé]
+    UPDATE -->|"Développement"| D1[⚠️ Pratique]
+    CREATE -->|"Tests"| T1[🧪 Tests uniquement]
+    DROP -->|"Tests"| T2[🧪 Tests unitaires]
+    
+    style P1 fill:#4CAF50,color:#fff
+    style P2 fill:#4CAF50,color:#fff
+    style D1 fill:#FF9800,color:#fff
+    style T1 fill:#2196F3,color:#fff
+    style T2 fill:#2196F3,color:#fff
+```
 
 | Valeur | Description | Usage |
 |--------|-------------|-------|
 | none | Aucune action | Production |
-| validate | Verifie que le schema correspond | Production |
-| update | Met a jour le schema sans supprimer | Developpement |
-| create | Cree le schema (supprime les donnees) | Test |
-| create-drop | Cree et supprime a l'arret | Test |
+| validate | Vérifie que le schéma correspond | Production |
+| update | Met à jour le schéma sans supprimer | Développement |
+| create | Crée le schéma (supprime les données) | Test |
+| create-drop | Crée et supprime à l'arrêt | Test |
 
 ### Recommandations
 
 ```yaml
-# Developpement
+# Développement
 spring.jpa.hibernate.ddl-auto: update
 
-# Production
+# Production (avec Flyway/Liquibase)
 spring.jpa.hibernate.ddl-auto: validate
-# Utiliser Flyway ou Liquibase pour les migrations
 ```
+
+> **Important** : En production, utilisez **Flyway** ou **Liquibase** pour gérer les migrations de schéma de manière contrôlée et versionnée.
 
 ---
 
 ## 6. EntityManager
 
-### Role
+### Rôle
 
-L'EntityManager est l'interface principale pour interagir avec le contexte de persistence.
+L'**EntityManager** est l'interface principale pour interagir avec le contexte de persistance. Il gère le cycle de vie des entités.
 
-### Operations de base
+### Diagramme : EntityManager
+
+```mermaid
+graph TB
+    EM[EntityManager] --> P["persist(entity)<br/>Persister une nouvelle entité"]
+    EM --> F["find(class, id)<br/>Rechercher par ID"]
+    EM --> M["merge(entity)<br/>Fusionner une entité détachée"]
+    EM --> R["remove(entity)<br/>Supprimer une entité"]
+    EM --> Q["createQuery(jpql)<br/>Créer une requête JPQL"]
+    
+    style EM fill:#2196F3,color:#fff
+```
+
+### Opérations de base
 
 ```java
 @Repository
@@ -166,71 +343,96 @@ public class LeadRepositoryCustom {
 
 ### Avec Spring Data JPA
 
-Spring Data JPA genere automatiquement ces operations. L'EntityManager est rarement utilise directement.
+> **Note** : Spring Data JPA génère automatiquement ces opérations. L'EntityManager est rarement utilisé directement, sauf pour des requêtes complexes.
 
 ---
 
-## 7. Cycle de vie d'une entite
+## 7. Cycle de vie d'une entité
 
-### Etats
+### Les quatre états
 
+```mermaid
+stateDiagram-v2
+    [*] --> NEW: new Entity()
+    
+    NEW --> MANAGED: persist()
+    MANAGED --> DETACHED: detach() / fin transaction
+    DETACHED --> MANAGED: merge()
+    MANAGED --> REMOVED: remove()
+    REMOVED --> [*]: flush / commit
+    
+    note right of NEW: Pas encore en base
+    note right of MANAGED: Synchronisée avec la base
+    note right of DETACHED: Plus synchronisée
+    note right of REMOVED: Marquée pour suppression
 ```
-        +----------+
-        |   NEW    |  (pas encore persiste)
-        +----+-----+
-             | persist()
-             v
-        +----------+
-        | MANAGED  |  (geree par EntityManager)
-        +----+-----+
-             | detach() / transaction terminee
-             v
-        +----------+
-        | DETACHED |  (n'est plus geree)
-        +----------+
-             | merge()
-             v
-        +----------+
-        | MANAGED  |
-        +----+-----+
-             | remove()
-             v
-        +----------+
-        | REMOVED  |
-        +----------+
-```
+
+### Description des états
+
+| État | Description | Synchronisé? |
+|------|-------------|--------------|
+| **NEW** | Objet créé avec `new`, pas encore persisté | Non |
+| **MANAGED** | Géré par l'EntityManager, changements traqués | Oui |
+| **DETACHED** | Plus géré, transaction terminée | Non |
+| **REMOVED** | Marqué pour suppression | N/A |
 
 ### Exemple
 
 ```java
-Lead lead = new Lead();          // NEW
+// 1. NEW - L'objet n'existe pas en base
+Lead lead = new Lead();
 lead.setFullName("Jean");
 
-em.persist(lead);                // MANAGED (id genere)
+// 2. MANAGED - Après persist(), l'ID est généré
+em.persist(lead);
+System.out.println(lead.getId());  // ID généré!
 
-Lead found = em.find(Lead.class, lead.getId());  // MANAGED
+// 3. MANAGED - Recherche retourne une entité gérée
+Lead found = em.find(Lead.class, lead.getId());
 
-em.detach(found);                // DETACHED
+// 4. DETACHED - L'entité n'est plus gérée
+em.detach(found);
 
+// 5. MANAGED - merge() rattache l'entité
 found.setFullName("Pierre");
-Lead merged = em.merge(found);   // MANAGED
+Lead merged = em.merge(found);
 
-em.remove(merged);               // REMOVED
+// 6. REMOVED - Marqué pour suppression
+em.remove(merged);
 ```
 
 ---
 
 ## 8. JPQL (Java Persistence Query Language)
 
+### Concept
+
+**JPQL** est un langage de requête orienté objet. Contrairement à SQL qui utilise les noms de tables et colonnes, JPQL utilise les noms de **classes et propriétés Java**.
+
+### Diagramme : SQL vs JPQL
+
+```mermaid
+graph LR
+    subgraph "SQL (Tables)"
+        SQL["SELECT * FROM leads l<br/>WHERE l.status = 'NEW'"]
+    end
+    
+    subgraph "JPQL (Objets)"
+        JPQL["SELECT l FROM Lead l<br/>WHERE l.status = :status"]
+    end
+    
+    SQL -->|"ORM"| JPQL
+    
+    style JPQL fill:#4CAF50,color:#fff
+```
+
 ### Syntaxe
 
-JPQL utilise les noms de classes et proprietes Java, pas les tables SQL.
-
 ```java
-// JPQL
+// JPQL - utilise les noms de classes/propriétés Java
 String jpql = "SELECT l FROM Lead l WHERE l.status = :status";
 
-// SQL equivalent
+// SQL équivalent - utilise les noms de tables/colonnes
 String sql = "SELECT * FROM leads l WHERE l.status = ?";
 ```
 
@@ -269,16 +471,41 @@ List<Lead> page = em.createQuery("SELECT l FROM Lead l", Lead.class)
 
 ## 9. Transactions
 
+### Concept
+
+Une **transaction** garantit que plusieurs opérations sont exécutées de manière atomique : soit toutes réussissent, soit aucune (rollback).
+
+### Diagramme : Transaction
+
+```mermaid
+sequenceDiagram
+    participant S as Service
+    participant T as Transaction
+    participant DB as Base de données
+    
+    S->>T: Début transaction
+    T->>DB: Opération 1
+    T->>DB: Opération 2
+    
+    alt Tout OK
+        T->>DB: COMMIT
+        DB-->>S: Succès
+    else Exception
+        T->>DB: ROLLBACK
+        DB-->>S: Tout annulé
+    end
+```
+
 ### @Transactional
 
 ```java
 @Service
-@Transactional  // Toutes les methodes sont transactionnelles
+@Transactional  // Toutes les méthodes sont transactionnelles
 public class LeadService {
     
-    @Transactional  // Peut aussi etre sur une methode
+    @Transactional  // Peut aussi être sur une méthode
     public void createLead(Lead lead) {
-        // Si exception -> rollback automatique
+        // Si exception → rollback automatique
     }
     
     @Transactional(readOnly = true)  // Optimisation pour les lectures
@@ -288,7 +515,7 @@ public class LeadService {
 }
 ```
 
-### Comportement
+### Exemple de rollback
 
 ```java
 @Transactional
@@ -300,89 +527,205 @@ public void transferLeads() {
     lead2.setStatus(LeadStatus.NEW);
     
     repository.save(lead1);
-    // Si exception ici, lead1 n'est pas sauvegarde non plus (rollback)
+    // Si exception ici, lead1 n'est PAS sauvegardé non plus!
     repository.save(lead2);
 }
 ```
 
 ---
 
-## 10. Points cles a retenir
+## 10. Points clés à retenir
 
-1. **JPA** = specification, **Hibernate** = implementation
+```mermaid
+mindmap
+  root((JPA/Hibernate))
+    Concepts
+      JPA = spécification
+      Hibernate = implémentation
+      ORM = pont objet-relationnel
+    Configuration
+      ddl-auto
+      show-sql
+      dialect
+    EntityManager
+      persist = créer
+      find = lire
+      merge = mettre à jour
+      remove = supprimer
+    États entité
+      NEW
+      MANAGED
+      DETACHED
+      REMOVED
+    Transactions
+      @Transactional
+      Rollback automatique
+```
+
+1. **JPA** = spécification, **Hibernate** = implémentation
 2. **ORM** fait le pont entre Java et SQL
-3. **ddl-auto** controle la creation du schema
-4. **EntityManager** gere les entites
-5. **@Transactional** garantit la coherence
+3. **ddl-auto** contrôle la création du schéma
+4. **EntityManager** gère les entités
+5. **@Transactional** garantit la cohérence
 
 ---
 
 ## QUIZ 4.1 - JPA et Hibernate
 
 **1. Qu'est-ce que JPA?**
-   - a) Une base de donnees
-   - b) Une specification ORM
-   - c) Un framework web
-   - d) Un langage de requete
+- a) Une base de données
+- b) Une spécification ORM
+- c) Un framework web
+- d) Un langage de requête
 
-**2. Qu'est-ce qu'Hibernate?**
-   - a) La specification JPA
-   - b) Une implementation de JPA
-   - c) Un serveur d'applications
-   - d) Un outil de migration
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Que fait ddl-auto: update?**
-   - a) Supprime et recree le schema
-   - b) Ne fait rien
-   - c) Met a jour le schema sans supprimer les donnees
-   - d) Valide le schema seulement
+**Réponse : b) Une spécification ORM**
 
-**4. Quelle valeur de ddl-auto pour la production?**
-   - a) create
-   - b) update
-   - c) validate ou none
-   - d) create-drop
-
-**5. VRAI ou FAUX: JPQL utilise les noms de tables SQL.**
-
-**6. Quel est le role de l'EntityManager?**
-   - a) Gerer les connexions
-   - b) Gerer le cycle de vie des entites
-   - c) Gerer les transactions
-   - d) Gerer le cache
-
-**7. Quelle annotation rend une methode transactionnelle?**
-   - a) @Transaction
-   - b) @Transactional
-   - c) @TX
-   - d) @Commit
-
-**8. Completez: ORM signifie Object-_______ Mapping.**
-
-**9. Quel etat a une entite apres persist()?**
-   - a) NEW
-   - b) MANAGED
-   - c) DETACHED
-   - d) REMOVED
-
-**10. Quelle est la difference entre JPA et Hibernate?**
-   - a) Aucune
-   - b) JPA = specification, Hibernate = implementation
-   - c) Hibernate = specification, JPA = implementation
-   - d) Deux frameworks differents
+JPA (Java Persistence API) est une spécification Java standard qui définit comment mapper des objets Java vers des bases de données relationnelles. Ce n'est pas une implémentation.
+</details>
 
 ---
 
-### REPONSES QUIZ 4.1
+**2. Qu'est-ce qu'Hibernate?**
+- a) La spécification JPA
+- b) Une implémentation de JPA
+- c) Un serveur d'applications
+- d) Un outil de migration
 
-1. b) Une specification ORM
-2. b) Une implementation de JPA
-3. c) Met a jour le schema sans supprimer les donnees
-4. c) validate ou none
-5. FAUX (noms de classes et proprietes Java)
-6. b) Gerer le cycle de vie des entites
-7. b) @Transactional
-8. Relational
-9. b) MANAGED
-10. b) JPA = specification, Hibernate = implementation
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : b) Une implémentation de JPA**
+
+Hibernate est l'implémentation JPA la plus populaire. C'est le provider par défaut de Spring Boot.
+</details>
+
+---
+
+**3. Que fait ddl-auto: update?**
+- a) Supprime et recrée le schéma
+- b) Ne fait rien
+- c) Met à jour le schéma sans supprimer les données
+- d) Valide le schéma seulement
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) Met à jour le schéma sans supprimer les données**
+
+`update` compare le schéma actuel avec les entités Java et ajoute les colonnes/tables manquantes. Les données existantes sont préservées.
+</details>
+
+---
+
+**4. Quelle valeur de ddl-auto pour la production?**
+- a) create
+- b) update
+- c) validate ou none
+- d) create-drop
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) validate ou none**
+
+En production, utilisez `validate` (vérifie que le schéma correspond) ou `none` (aucune action). Les migrations doivent être gérées par Flyway ou Liquibase.
+</details>
+
+---
+
+**5. VRAI ou FAUX : JPQL utilise les noms de tables SQL.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : FAUX**
+
+JPQL utilise les noms de **classes et propriétés Java**, pas les noms de tables et colonnes SQL. C'est un langage orienté objet.
+</details>
+
+---
+
+**6. Quel est le rôle de l'EntityManager?**
+- a) Gérer les connexions
+- b) Gérer le cycle de vie des entités
+- c) Gérer les transactions
+- d) Gérer le cache
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Gérer le cycle de vie des entités**
+
+L'EntityManager est l'interface principale pour interagir avec le contexte de persistance. Il gère les opérations CRUD et le cycle de vie des entités (NEW, MANAGED, DETACHED, REMOVED).
+</details>
+
+---
+
+**7. Quelle annotation rend une méthode transactionnelle?**
+- a) @Transaction
+- b) @Transactional
+- c) @TX
+- d) @Commit
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) @Transactional**
+
+@Transactional (de Spring) marque une méthode ou une classe comme transactionnelle. En cas d'exception, un rollback est effectué automatiquement.
+</details>
+
+---
+
+**8. Complétez : ORM signifie Object-_______ Mapping.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : Relational**
+
+ORM = Object-Relational Mapping. C'est la technique qui fait le pont entre le monde objet (Java) et le monde relationnel (SQL).
+</details>
+
+---
+
+**9. Quel état a une entité après persist()?**
+- a) NEW
+- b) MANAGED
+- c) DETACHED
+- d) REMOVED
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) MANAGED**
+
+Après `persist()`, l'entité passe de l'état NEW à MANAGED. Elle est maintenant gérée par l'EntityManager et ses changements seront synchronisés avec la base.
+</details>
+
+---
+
+**10. Quelle est la différence entre JPA et Hibernate?**
+- a) Aucune
+- b) JPA = spécification, Hibernate = implémentation
+- c) Hibernate = spécification, JPA = implémentation
+- d) Deux frameworks différents
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) JPA = spécification, Hibernate = implémentation**
+
+JPA définit les standards (interfaces, annotations), Hibernate les implémente. D'autres implémentations existent (EclipseLink, OpenJPA).
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [15 - Validation des données](15-validation-donnees.md) | [17 - Annotations JPA](17-annotations-jpa.md) |
