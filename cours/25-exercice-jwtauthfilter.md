@@ -162,6 +162,310 @@ Dans votre IDE (VS Code, IntelliJ) :
 
 ---
 
+## Architecture : Quelle classe appelle quelle classe?
+
+### Vue d'ensemble des appels
+
+```mermaid
+graph TB
+    subgraph "1. DÉMARRAGE DE L'APPLICATION"
+        BOOT["Spring Boot démarre"]
+        BOOT --> SC["SecurityConfig.java"]
+        BOOT --> UDC["UserDetailsConfig.java"]
+        
+        SC -->|"@Bean"| CREATES1["Crée SecurityFilterChain"]
+        SC -->|"@Bean"| CREATES2["Crée PasswordEncoder"]
+        SC -->|"@Bean"| CREATES3["Crée AuthenticationProvider"]
+        
+        UDC -->|"@Bean"| CREATES4["Crée UserDetailsService"]
+    end
+    
+    style BOOT fill:#4CAF50,color:#fff
+    style SC fill:#2196F3,color:#fff
+    style UDC fill:#2196F3,color:#fff
+```
+
+### Qui appelle JwtAuthFilter?
+
+```mermaid
+graph TB
+    A["Requête HTTP arrive"]
+    A --> B["Spring Security intercepte"]
+    B --> C["SecurityFilterChain"]
+    C --> D["JwtAuthFilter.doFilterInternal()"]
+    
+    D --> E["JwtService.extractUsername()"]
+    D --> F["UserDetailsService.loadUserByUsername()"]
+    D --> G["JwtService.isTokenValid()"]
+    
+    F --> H["UserRepository.findByEmail()"]
+    H --> I["PostgreSQL"]
+    
+    style D fill:#E91E63,color:#fff
+    style E fill:#FF9800,color:#fff
+    style F fill:#9C27B0,color:#fff
+```
+
+**Réponse : C'est Spring Security qui appelle automatiquement `JwtAuthFilter` à chaque requête HTTP.**
+
+---
+
+## Tableau : Qui appelle qui?
+
+| Appelant | Appelle | Quand? |
+|----------|---------|--------|
+| **Spring Boot** | `SecurityConfig` | Au démarrage |
+| **Spring Boot** | `UserDetailsConfig` | Au démarrage |
+| **Spring Security** | `JwtAuthFilter.doFilterInternal()` | À chaque requête HTTP |
+| **JwtAuthFilter** | `JwtService.extractUsername()` | Pour décoder le JWT |
+| **JwtAuthFilter** | `UserDetailsService.loadUserByUsername()` | Pour charger l'utilisateur |
+| **JwtAuthFilter** | `JwtService.isTokenValid()` | Pour valider le token |
+| **UserDetailsService** | `UserRepository.findByEmail()` | Pour chercher en DB |
+| **UserRepository** | PostgreSQL | Requête SQL |
+
+---
+
+## Diagramme complet de l'architecture
+
+```mermaid
+graph TB
+    subgraph "COUCHE PRÉSENTATION"
+        REQ["Requête HTTP<br/>GET /api/admin/leads<br/>Authorization: Bearer eyJ..."]
+    end
+    
+    subgraph "COUCHE SÉCURITÉ (security/)"
+        JAF["JwtAuthFilter<br/>Valide le JWT"]
+        JS["JwtService<br/>Décode/Génère JWT"]
+    end
+    
+    subgraph "COUCHE CONFIGURATION (config/)"
+        SC["SecurityConfig<br/>Règles de sécurité"]
+        UDC["UserDetailsConfig<br/>Bean UserDetailsService"]
+    end
+    
+    subgraph "COUCHE CONTROLLER (controller/)"
+        LC["LeadController<br/>GET /api/admin/leads"]
+        AC["AuthController<br/>POST /api/auth/login"]
+    end
+    
+    subgraph "COUCHE SERVICE (service/)"
+        LS["LeadService"]
+        ES["EmailService"]
+    end
+    
+    subgraph "COUCHE REPOSITORY (repository/)"
+        LR["LeadRepository"]
+        UR["UserRepository"]
+    end
+    
+    subgraph "COUCHE MODEL (model/)"
+        LEAD["Lead"]
+        USER["User"]
+    end
+    
+    subgraph "BASE DE DONNÉES"
+        DB[(PostgreSQL)]
+    end
+    
+    REQ --> SC
+    SC -->|"filtre"| JAF
+    JAF -->|"utilise"| JS
+    JAF -->|"utilise"| UDC
+    UDC -->|"utilise"| UR
+    
+    JAF -->|"si JWT valide"| LC
+    LC --> LS
+    LS --> LR
+    LR --> DB
+    
+    UR --> DB
+    
+    style JAF fill:#E91E63,color:#fff
+    style JS fill:#E91E63,color:#fff
+    style SC fill:#2196F3,color:#fff
+    style UDC fill:#2196F3,color:#fff
+```
+
+---
+
+## Flux détaillé : Une requête protégée
+
+### Étape par étape avec les fichiers
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant SC as SecurityConfig<br/>(config/)
+    participant JAF as JwtAuthFilter<br/>(security/)
+    participant JS as JwtService<br/>(security/)
+    participant UDC as UserDetailsConfig<br/>(config/)
+    participant UR as UserRepository<br/>(repository/)
+    participant LC as LeadController<br/>(controller/)
+    participant DB as PostgreSQL
+    
+    Note over C,DB: GET /api/admin/leads avec JWT
+    
+    C->>SC: 1. Requête arrive
+    SC->>SC: 2. Vérifie les règles (requestMatchers)
+    SC->>JAF: 3. Passe au filtre JWT
+    
+    JAF->>JAF: 4. Extrait "Bearer eyJ..." du header
+    JAF->>JS: 5. extractUsername(jwt)
+    JS-->>JAF: 6. "admin@test.com"
+    
+    JAF->>UDC: 7. loadUserByUsername("admin@test.com")
+    UDC->>UR: 8. findByEmail("admin@test.com")
+    UR->>DB: 9. SELECT * FROM users WHERE email=?
+    DB-->>UR: 10. User
+    UR-->>UDC: 11. User
+    UDC-->>JAF: 12. UserDetails
+    
+    JAF->>JS: 13. isTokenValid(jwt, user)
+    JS-->>JAF: 14. true
+    
+    JAF->>JAF: 15. SecurityContext.setAuthentication()
+    JAF->>LC: 16. Requête autorisée
+    
+    LC-->>C: 17. 200 OK [leads...]
+```
+
+---
+
+## Les 4 fichiers de sécurité et leurs rôles
+
+### 1. SecurityConfig.java (config/)
+
+```java
+// RÔLE : Configurer les RÈGLES de sécurité
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+    
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtAuthFilter jwtAuthFilter  // ← Injecte JwtAuthFilter
+    ) {
+        http
+            .addFilterBefore(jwtAuthFilter, ...)  // ← Ajoute le filtre
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")  // ← Règles
+            );
+    }
+}
+```
+
+**Appelle** : Rien directement, mais **configure** JwtAuthFilter dans la chaîne.
+
+---
+
+### 2. JwtAuthFilter.java (security/)
+
+```java
+// RÔLE : Intercepter chaque requête et valider le JWT
+@Component
+public class JwtAuthFilter extends OncePerRequestFilter {
+    
+    private final JwtService jwtService;           // ← Dépendance 1
+    private final UserDetailsService userDetailsService;  // ← Dépendance 2
+    
+    protected void doFilterInternal(...) {
+        // Appelle JwtService
+        String email = jwtService.extractUsername(jwt);
+        
+        // Appelle UserDetailsService
+        UserDetails user = userDetailsService.loadUserByUsername(email);
+        
+        // Appelle JwtService encore
+        if (jwtService.isTokenValid(jwt, user)) {
+            // Authentifier
+        }
+    }
+}
+```
+
+**Appelle** : `JwtService` et `UserDetailsService`
+
+---
+
+### 3. JwtService.java (security/)
+
+```java
+// RÔLE : Décoder et valider les tokens JWT
+@Service
+public class JwtService {
+    
+    public String extractUsername(String token) { ... }
+    public boolean isTokenValid(String token, UserDetails user) { ... }
+    public String generateToken(UserDetails user) { ... }
+}
+```
+
+**Appelle** : Rien (c'est un utilitaire)
+
+---
+
+### 4. UserDetailsConfig.java (config/)
+
+```java
+// RÔLE : Fournir le service qui charge les utilisateurs
+@Configuration
+public class UserDetailsConfig {
+    
+    private final UserRepository userRepository;  // ← Dépendance
+    
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> userRepository.findByEmail(username)  // ← Appelle UserRepository
+                .orElseThrow(...);
+    }
+}
+```
+
+**Appelle** : `UserRepository`
+
+---
+
+## Résumé visuel : Qui appelle qui?
+
+```mermaid
+graph LR
+    subgraph "Appelé par Spring"
+        SC["SecurityConfig"]
+        UDC["UserDetailsConfig"]
+    end
+    
+    subgraph "Appelé par Spring Security"
+        JAF["JwtAuthFilter"]
+    end
+    
+    subgraph "Appelé par JwtAuthFilter"
+        JS["JwtService"]
+        UDS["UserDetailsService"]
+    end
+    
+    subgraph "Appelé par UserDetailsService"
+        UR["UserRepository"]
+    end
+    
+    subgraph "Appelé par UserRepository"
+        DB[(PostgreSQL)]
+    end
+    
+    SC -.->|configure| JAF
+    JAF -->|appelle| JS
+    JAF -->|appelle| UDS
+    UDS -->|appelle| UR
+    UR -->|SQL| DB
+    
+    style JAF fill:#E91E63,color:#fff
+    style JS fill:#FF9800,color:#fff
+    style SC fill:#2196F3,color:#fff
+    style UDC fill:#2196F3,color:#fff
+```
+
+---
+
 ## Diagramme des 13 étapes
 
 ```mermaid
