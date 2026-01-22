@@ -19,6 +19,198 @@ Vous travaillez sur une API REST sécurisée avec JWT. Vous devez créer le filt
 
 ---
 
+## Diagramme des 13 étapes
+
+```mermaid
+graph TB
+    subgraph "STRUCTURE DE LA CLASSE"
+        E1["ÉTAPE 1<br/>Hériter de OncePerRequestFilter"]
+        E2["ÉTAPE 2<br/>Injecter JwtService et UserDetailsService"]
+    end
+    
+    subgraph "EXTRACTION DU JWT"
+        E3["ÉTAPE 3<br/>Récupérer header Authorization"]
+        E4["ÉTAPE 4<br/>Vérifier 'Bearer '"]
+        E5["ÉTAPE 5<br/>Extraire le JWT (substring)"]
+    end
+    
+    subgraph "VALIDATION"
+        E6["ÉTAPE 6<br/>Extraire l'email du JWT"]
+        E7["ÉTAPE 7<br/>Vérifier pas déjà authentifié"]
+        E8["ÉTAPE 8<br/>Charger l'utilisateur (DB)"]
+        E9["ÉTAPE 9<br/>Valider le token"]
+    end
+    
+    subgraph "AUTHENTIFICATION"
+        E10["ÉTAPE 10<br/>Créer Authentication"]
+        E11["ÉTAPE 11<br/>Ajouter détails requête"]
+        E12["ÉTAPE 12<br/>Stocker dans SecurityContext"]
+    end
+    
+    subgraph "FINALISATION"
+        E13["ÉTAPE 13<br/>Continuer la chaîne (doFilter)"]
+    end
+    
+    E1 --> E2 --> E3 --> E4 --> E5 --> E6 --> E7 --> E8 --> E9 --> E10 --> E11 --> E12 --> E13
+    
+    style E1 fill:#9C27B0,color:#fff
+    style E2 fill:#9C27B0,color:#fff
+    style E3 fill:#2196F3,color:#fff
+    style E4 fill:#2196F3,color:#fff
+    style E5 fill:#2196F3,color:#fff
+    style E6 fill:#FF9800,color:#fff
+    style E7 fill:#FF9800,color:#fff
+    style E8 fill:#FF9800,color:#fff
+    style E9 fill:#FF9800,color:#fff
+    style E10 fill:#4CAF50,color:#fff
+    style E11 fill:#4CAF50,color:#fff
+    style E12 fill:#4CAF50,color:#fff
+    style E13 fill:#f44336,color:#fff
+```
+
+---
+
+## Tableau récapitulatif des 13 étapes
+
+| Étape | Action | Méthode/Concept | Ce qu'on complète |
+|-------|--------|-----------------|-------------------|
+| 1 | Hériter de la bonne classe | `extends` | `OncePerRequestFilter` |
+| 2 | Injecter les dépendances | `private final` | `jwtService`, `userDetailsService` |
+| 3 | Récupérer le header | `request.getHeader()` | `"Authorization"` |
+| 4 | Vérifier le format | `startsWith()` | `"Bearer "` |
+| 5 | Extraire le JWT | `substring()` | `7` |
+| 6 | Extraire l'email | `jwtService.extractUsername()` | `extractUsername` |
+| 7 | Vérifier pas déjà auth | `getAuthentication()` | `getAuthentication` |
+| 8 | Charger l'utilisateur | `loadUserByUsername()` | `loadUserByUsername` |
+| 9 | Valider le token | `isTokenValid()` | `isTokenValid` |
+| 10 | Créer l'Authentication | `new ...Token()` | `userDetails`, `getAuthorities` |
+| 11 | Ajouter les détails | `setDetails()` | `request` |
+| 12 | Stocker dans le contexte | `setAuthentication()` | `setAuthentication` |
+| 13 | Continuer la chaîne | `doFilter()` | `doFilter` |
+
+---
+
+## Explication des imports
+
+Avant de coder, comprenons **pourquoi** on a besoin de chaque import :
+
+```java
+package com.example.contact.security;
+
+// Imports pour le filtre HTTP
+import jakarta.servlet.FilterChain;           // La chaîne de filtres
+import jakarta.servlet.ServletException;      // Exception possible
+import jakarta.servlet.http.HttpServletRequest;   // La requête HTTP
+import jakarta.servlet.http.HttpServletResponse;  // La réponse HTTP
+
+// Import Lombok
+import lombok.RequiredArgsConstructor;        // Génère le constructeur
+
+// Import Spring
+import org.springframework.lang.NonNull;      // Annotation de nullabilité
+import org.springframework.stereotype.Component;  // Marque comme bean Spring
+import org.springframework.web.filter.OncePerRequestFilter;  // Classe parent
+
+// Imports Spring Security
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;  // L'objet Authentication
+import org.springframework.security.core.context.SecurityContextHolder;  // Stockage de l'auth
+import org.springframework.security.core.userdetails.UserDetails;        // Interface utilisateur
+import org.springframework.security.core.userdetails.UserDetailsService; // Service pour charger user
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;  // Détails requête
+
+// Import Java standard
+import java.io.IOException;  // Exception I/O
+```
+
+### Tableau des imports par catégorie
+
+| Catégorie | Import | Rôle |
+|-----------|--------|------|
+| **Servlet** | `FilterChain` | Représente la chaîne de filtres à parcourir |
+| **Servlet** | `ServletException` | Exception levée par les servlets |
+| **Servlet** | `HttpServletRequest` | Objet représentant la requête HTTP entrante |
+| **Servlet** | `HttpServletResponse` | Objet représentant la réponse HTTP |
+| **Lombok** | `@RequiredArgsConstructor` | Génère automatiquement le constructeur avec les champs `final` |
+| **Spring Core** | `@NonNull` | Indique qu'un paramètre ne peut pas être null |
+| **Spring Core** | `@Component` | Marque la classe comme un bean géré par Spring |
+| **Spring Web** | `OncePerRequestFilter` | Classe abstraite garantissant 1 seule exécution par requête |
+| **Security** | `UsernamePasswordAuthenticationToken` | Objet représentant un utilisateur authentifié |
+| **Security** | `SecurityContextHolder` | Conteneur thread-local pour stocker l'Authentication |
+| **Security** | `UserDetails` | Interface représentant un utilisateur pour Spring Security |
+| **Security** | `UserDetailsService` | Service pour charger un utilisateur depuis la DB |
+| **Security** | `WebAuthenticationDetailsSource` | Factory pour créer les détails de la requête |
+| **Java** | `IOException` | Exception d'entrée/sortie |
+
+### Diagramme des dépendances
+
+```mermaid
+graph TB
+    subgraph "Java Servlet API"
+        A1["FilterChain"]
+        A2["HttpServletRequest"]
+        A3["HttpServletResponse"]
+        A4["ServletException"]
+    end
+    
+    subgraph "Spring Framework"
+        B1["@Component"]
+        B2["OncePerRequestFilter"]
+        B3["@NonNull"]
+    end
+    
+    subgraph "Spring Security"
+        C1["UsernamePasswordAuthenticationToken"]
+        C2["SecurityContextHolder"]
+        C3["UserDetails"]
+        C4["UserDetailsService"]
+        C5["WebAuthenticationDetailsSource"]
+    end
+    
+    subgraph "Lombok"
+        D1["@RequiredArgsConstructor"]
+    end
+    
+    subgraph "Notre classe"
+        E["JwtAuthFilter"]
+    end
+    
+    A1 --> E
+    A2 --> E
+    A3 --> E
+    B1 --> E
+    B2 --> E
+    C1 --> E
+    C2 --> E
+    C3 --> E
+    C4 --> E
+    C5 --> E
+    D1 --> E
+    
+    style E fill:#E91E63,color:#fff
+```
+
+---
+
+## Tableau des méthodes utilisées
+
+| Méthode | Classe/Interface | Ce qu'elle fait | Retourne |
+|---------|------------------|-----------------|----------|
+| `getHeader(name)` | HttpServletRequest | Récupère un header HTTP | String ou null |
+| `startsWith(prefix)` | String | Vérifie si la chaîne commence par... | boolean |
+| `substring(index)` | String | Extrait une sous-chaîne à partir de... | String |
+| `extractUsername(token)` | JwtService | Extrait l'email du JWT | String |
+| `getContext()` | SecurityContextHolder | Récupère le SecurityContext | SecurityContext |
+| `getAuthentication()` | SecurityContext | Récupère l'Authentication actuelle | Authentication ou null |
+| `loadUserByUsername(email)` | UserDetailsService | Charge l'utilisateur depuis la DB | UserDetails |
+| `isTokenValid(token, user)` | JwtService | Vérifie si le token est valide | boolean |
+| `getAuthorities()` | UserDetails | Retourne les rôles de l'utilisateur | Collection |
+| `setDetails(details)` | Authentication | Attache les détails de la requête | void |
+| `buildDetails(request)` | WebAuthenticationDetailsSource | Crée les détails depuis la requête | WebAuthenticationDetails |
+| `setAuthentication(auth)` | SecurityContext | Stocke l'Authentication | void |
+| `doFilter(req, resp)` | FilterChain | Passe au prochain filtre | void |
+
+---
+
 ## Vue d'ensemble : Que fait JwtAuthFilter?
 
 ```mermaid
