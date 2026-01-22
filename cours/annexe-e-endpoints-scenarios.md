@@ -217,18 +217,21 @@ Content-Type: application/json
 **Endpoint** : `GET /api/admin/leads`
 **Protection** : ROLE_ADMIN requis
 
-#### Vue simplifiée (3 étapes)
+#### Vue simplifiée (verticale)
 
 ```mermaid
-graph LR
-    A["1. Client envoie<br/>GET + JWT"] --> B["2. JwtAuthFilter<br/>valide le token"]
-    B --> C["3. SecurityConfig<br/>vérifie ROLE_ADMIN"]
-    C --> D["4. LeadController<br/>retourne les leads"]
+graph TB
+    A["1. Client envoie GET + JWT"]
+    A --> B["2. JwtAuthFilter valide le token"]
+    B --> C["3. SecurityConfig vérifie ROLE_ADMIN"]
+    C --> D["4. LeadController retourne les leads"]
+    D --> E["5. 200 OK"]
     
     style A fill:#2196F3,color:#fff
     style B fill:#FF9800,color:#fff
     style C fill:#4CAF50,color:#fff
     style D fill:#9C27B0,color:#fff
+    style E fill:#4CAF50,color:#fff
 ```
 
 #### Étape 1 : Le client envoie la requête

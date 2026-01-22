@@ -886,12 +886,13 @@ Voici exactement ce qui se passe dans notre projet `e-contact-backend` avec les 
 #### Vue d'ensemble simplifiée
 
 ```mermaid
-graph LR
-    A["Client<br/>email + password"] --> B["AuthController"]
-    B --> C["AuthenticationManager"]
-    C --> D["Vérifie password"]
-    D --> E["JwtService"]
-    E --> F["Token JWT"]
+graph TB
+    A["1. Client envoie email + password"]
+    A --> B["2. AuthController reçoit la requête"]
+    B --> C["3. AuthenticationManager authentifie"]
+    C --> D["4. BCrypt vérifie le mot de passe"]
+    D --> E["5. JwtService génère le token"]
+    E --> F["6. Réponse: Token JWT"]
     
     style A fill:#2196F3,color:#fff
     style B fill:#FF9800,color:#fff
@@ -1116,11 +1117,12 @@ public class User implements UserDetails {
 #### Vue d'ensemble simplifiée
 
 ```mermaid
-graph LR
-    A["Client + JWT"] --> B["JwtAuthFilter"]
-    B --> C["SecurityConfig"]
-    C --> D["LeadController"]
-    D --> E["200 OK"]
+graph TB
+    A["1. Client envoie GET + JWT"] 
+    A --> B["2. JwtAuthFilter valide le token"]
+    B --> C["3. SecurityConfig vérifie ROLE_ADMIN"]
+    C --> D["4. LeadController exécute"]
+    D --> E["5. 200 OK - Liste des leads"]
     
     style A fill:#2196F3,color:#fff
     style B fill:#FF9800,color:#fff
