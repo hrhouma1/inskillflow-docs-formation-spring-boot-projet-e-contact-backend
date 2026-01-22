@@ -883,60 +883,78 @@ Voici exactement ce qui se passe dans notre projet `e-contact-backend` avec les 
 
 **Requête** : `POST /api/auth/login` avec `{"email": "admin@test.com", "password": "admin123"}`
 
+#### Vue d'ensemble simplifiée
+
+```mermaid
+graph LR
+    A["Client<br/>email + password"] --> B["AuthController"]
+    B --> C["AuthenticationManager"]
+    C --> D["Vérifie password"]
+    D --> E["JwtService"]
+    E --> F["Token JWT"]
+    
+    style A fill:#2196F3,color:#fff
+    style B fill:#FF9800,color:#fff
+    style C fill:#9C27B0,color:#fff
+    style D fill:#4CAF50,color:#fff
+    style E fill:#E91E63,color:#fff
+    style F fill:#4CAF50,color:#fff
+```
+
+#### Étape 1-3 : La requête arrive (endpoint public)
+
 ```mermaid
 sequenceDiagram
-    participant Client as Client (Postman/Frontend)
-    participant SF as Spring Security Filter
+    participant C as Client
     participant SC as SecurityConfig
     participant AC as AuthController
+    
+    C->>SC: POST /api/auth/login
+    SC->>SC: /api/auth/** → permitAll() ✅
+    SC->>AC: Requête autorisée
+```
+
+#### Étape 4-6 : Chargement de l'utilisateur
+
+```mermaid
+sequenceDiagram
+    participant AC as AuthController
     participant AM as AuthenticationManager
-    participant DAP as DaoAuthenticationProvider
-    participant UDS as UserDetailsService<br/>(UserDetailsConfig.java)
-    participant UR as UserRepository
-    participant PE as PasswordEncoder<br/>(BCrypt)
+    participant UDS as UserDetailsService
+    participant DB as Database
+    
+    AC->>AM: authenticate("admin@test.com", "admin123")
+    AM->>UDS: loadUserByUsername("admin@test.com")
+    UDS->>DB: SELECT * FROM users WHERE email=?
+    DB-->>UDS: User(password_hash, role=ADMIN)
+    UDS-->>AM: User
+```
+
+#### Étape 7-8 : Vérification du mot de passe
+
+```mermaid
+sequenceDiagram
+    participant AM as AuthenticationManager
+    participant PE as PasswordEncoder (BCrypt)
+    
+    AM->>PE: matches("admin123", "$2a$10$hash...")
+    PE-->>AM: true ✅
+    AM-->>AM: Authentication SUCCESS
+```
+
+#### Étape 9-11 : Génération du JWT et réponse
+
+```mermaid
+sequenceDiagram
+    participant AM as AuthenticationManager
+    participant AC as AuthController
     participant JS as JwtService
-    participant DB as PostgreSQL
+    participant C as Client
     
-    Note over Client,DB: ÉTAPE 1 : La requête arrive
-    Client->>SF: POST /api/auth/login
-    
-    Note over SF,SC: ÉTAPE 2 : Vérification des règles
-    SF->>SC: Vérifie requestMatchers()
-    SC-->>SF: "/api/auth/**" → permitAll() ✅
-    
-    Note over SF,AC: ÉTAPE 3 : Pas de JWT requis, passe au Controller
-    SF->>AC: Requête autorisée
-    
-    Note over AC,AM: ÉTAPE 4 : AuthController.login() ligne 27-33
-    AC->>AM: authenticationManager.authenticate(<br/>UsernamePasswordAuthenticationToken(<br/>"admin@test.com", "admin123"))
-    
-    Note over AM,DAP: ÉTAPE 5 : AuthenticationManager délègue
-    AM->>DAP: authenticate()
-    
-    Note over DAP,UDS: ÉTAPE 6 : DaoAuthenticationProvider charge l'utilisateur
-    DAP->>UDS: loadUserByUsername("admin@test.com")
-    
-    Note over UDS,UR: ÉTAPE 7 : UserDetailsConfig.java ligne 17-19
-    UDS->>UR: findByEmail("admin@test.com")
-    UR->>DB: SELECT * FROM users WHERE email='admin@test.com'
-    DB-->>UR: User(id=1, email, password_hash, role=ADMIN)
-    UR-->>UDS: Optional<User>
-    UDS-->>DAP: User (implements UserDetails)
-    
-    Note over DAP,PE: ÉTAPE 8 : Vérification du mot de passe
-    DAP->>PE: matches("admin123", "$2a$10$hash...")
-    PE-->>DAP: true ✅
-    
-    Note over DAP,AM: ÉTAPE 9 : Authentification réussie
-    DAP-->>AM: Authentication(principal=User, authorities=[ROLE_ADMIN])
-    AM-->>AC: Authentication
-    
-    Note over AC,JS: ÉTAPE 10 : Génération du JWT (ligne 36)
-    AC->>JS: jwtService.generateToken(user)
+    AM-->>AC: Authentication(user, [ROLE_ADMIN])
+    AC->>JS: generateToken(user)
     JS-->>AC: "eyJhbGciOiJIUzI1NiJ9..."
-    
-    Note over AC,Client: ÉTAPE 11 : Réponse au client
-    AC-->>Client: 200 OK { token: "eyJ...", type: "Bearer", role: "ADMIN" }
+    AC-->>C: 200 OK { token: "eyJ...", role: "ADMIN" }
 ```
 
 ### Code correspondant dans notre projet
@@ -1044,62 +1062,74 @@ public class User implements UserDetails {
 
 **Requête** : `GET /api/admin/leads` avec header `Authorization: Bearer eyJ...`
 
+#### Vue d'ensemble simplifiée
+
+```mermaid
+graph LR
+    A["Client + JWT"] --> B["JwtAuthFilter"]
+    B --> C["SecurityConfig"]
+    C --> D["LeadController"]
+    D --> E["200 OK"]
+    
+    style A fill:#2196F3,color:#fff
+    style B fill:#FF9800,color:#fff
+    style C fill:#4CAF50,color:#fff
+    style D fill:#9C27B0,color:#fff
+    style E fill:#4CAF50,color:#fff
+```
+
+#### Étape 1-3 : Extraction du JWT
+
 ```mermaid
 sequenceDiagram
-    participant Client as Client
-    participant SF as SecurityFilterChain
-    participant JAF as JwtAuthFilter<br/>(notre filtre)
+    participant C as Client
+    participant JAF as JwtAuthFilter
+    
+    C->>JAF: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
+    JAF->>JAF: authHeader = "Bearer eyJ..."
+    JAF->>JAF: jwt = authHeader.substring(7)<br/>→ "eyJ..."
+```
+
+#### Étape 4-5 : Extraction email et chargement user
+
+```mermaid
+sequenceDiagram
+    participant JAF as JwtAuthFilter
     participant JS as JwtService
-    participant UDS as UserDetailsService
-    participant UR as UserRepository
-    participant SC as SecurityConfig<br/>(règles)
-    participant LC as LeadController
-    participant DB as PostgreSQL
+    participant DB as Database
     
-    Note over Client,SF: ÉTAPE 1 : Requête avec JWT
-    Client->>SF: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
-    
-    Note over SF,JAF: ÉTAPE 2 : JwtAuthFilter.doFilterInternal() ligne 27
-    SF->>JAF: doFilterInternal(request, response, filterChain)
-    
-    Note over JAF: ÉTAPE 3 : Extraction du token (ligne 33-42)
-    JAF->>JAF: authHeader = request.getHeader("Authorization")<br/>jwt = authHeader.substring(7)
-    
-    Note over JAF,JS: ÉTAPE 4 : Extraction de l'email (ligne 45)
-    JAF->>JS: jwtService.extractUsername(jwt)
-    JS->>JS: Décode le JWT, extrait le "subject"
+    JAF->>JS: extractUsername(jwt)
     JS-->>JAF: "admin@test.com"
+    JAF->>DB: findByEmail("admin@test.com")
+    DB-->>JAF: User(role=ADMIN)
+```
+
+#### Étape 6-7 : Validation et authentification
+
+```mermaid
+sequenceDiagram
+    participant JAF as JwtAuthFilter
+    participant JS as JwtService
+    participant CTX as SecurityContext
     
-    Note over JAF,UDS: ÉTAPE 5 : Chargement de l'utilisateur (ligne 48)
-    JAF->>UDS: userDetailsService.loadUserByUsername("admin@test.com")
-    UDS->>UR: findByEmail("admin@test.com")
-    UR->>DB: SELECT * FROM users WHERE email='admin@test.com'
-    DB-->>UR: User
-    UR-->>UDS: User
-    UDS-->>JAF: UserDetails (notre User)
-    
-    Note over JAF,JS: ÉTAPE 6 : Validation du token (ligne 50)
-    JAF->>JS: jwtService.isTokenValid(jwt, userDetails)
-    JS->>JS: Vérifie signature + expiration
+    JAF->>JS: isTokenValid(jwt, user)
     JS-->>JAF: true ✅
+    JAF->>CTX: setAuthentication(user, [ROLE_ADMIN])
+```
+
+#### Étape 8-11 : Vérification règles et réponse
+
+```mermaid
+sequenceDiagram
+    participant JAF as JwtAuthFilter
+    participant SC as SecurityConfig
+    participant LC as LeadController
+    participant C as Client
     
-    Note over JAF: ÉTAPE 7 : Création de l'Authentication (ligne 51-57)
-    JAF->>JAF: UsernamePasswordAuthenticationToken authToken =<br/>new ...Token(userDetails, null, userDetails.getAuthorities())
-    JAF->>JAF: SecurityContextHolder.getContext().setAuthentication(authToken)
-    
-    Note over JAF,SC: ÉTAPE 8 : Continue la chaîne
-    JAF->>SC: filterChain.doFilter() → Vérifie les règles
-    
-    Note over SC: ÉTAPE 9 : Vérification des règles (ligne 53)
-    SC->>SC: "/api/admin/**" → hasRole("ADMIN")<br/>User a ROLE_ADMIN? ✅
-    
-    Note over SC,LC: ÉTAPE 10 : Accès autorisé
-    SC->>LC: Appel de la méthode du Controller
-    LC->>DB: Récupère les leads
-    DB-->>LC: Liste des leads
-    
-    Note over LC,Client: ÉTAPE 11 : Réponse
-    LC-->>Client: 200 OK [{ lead1 }, { lead2 }, ...]
+    JAF->>SC: filterChain.doFilter()
+    SC->>SC: hasRole('ADMIN')? ✅
+    SC->>LC: Accès autorisé
+    LC-->>C: 200 OK [leads...]
 ```
 
 ### Code correspondant

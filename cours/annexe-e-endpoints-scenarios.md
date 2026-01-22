@@ -217,44 +217,69 @@ Content-Type: application/json
 **Endpoint** : `GET /api/admin/leads`
 **Protection** : ROLE_ADMIN requis
 
+#### Vue simplifiée (3 étapes)
+
+```mermaid
+graph LR
+    A["1. Client envoie<br/>GET + JWT"] --> B["2. JwtAuthFilter<br/>valide le token"]
+    B --> C["3. SecurityConfig<br/>vérifie ROLE_ADMIN"]
+    C --> D["4. LeadController<br/>retourne les leads"]
+    
+    style A fill:#2196F3,color:#fff
+    style B fill:#FF9800,color:#fff
+    style C fill:#4CAF50,color:#fff
+    style D fill:#9C27B0,color:#fff
+```
+
+#### Étape 1 : Le client envoie la requête
+
 ```mermaid
 sequenceDiagram
     participant A as Admin
-    participant F as Frontend Admin
+    participant F as Frontend
+    participant API as API
+    
+    A->>F: Clique "Voir les leads"
+    F->>F: Token = localStorage.getItem('token')
+    F->>API: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
+```
+
+#### Étape 2 : JwtAuthFilter valide le token
+
+```mermaid
+sequenceDiagram
+    participant API as API
+    participant JAF as JwtAuthFilter
+    participant JS as JwtService
+    participant DB as Database
+    
+    API->>JAF: Requête arrive
+    JAF->>JAF: Extrait "Bearer eyJ..." → jwt
+    JAF->>JS: extractUsername(jwt)
+    JS-->>JAF: "admin@test.com"
+    JAF->>DB: findByEmail("admin@test.com")
+    DB-->>JAF: User(ADMIN)
+    JAF->>JS: isTokenValid(jwt, user)
+    JS-->>JAF: true ✅
+    JAF->>JAF: SecurityContext.setAuthentication(user)
+```
+
+#### Étape 3 : Vérification des règles et réponse
+
+```mermaid
+sequenceDiagram
     participant JAF as JwtAuthFilter
     participant SC as SecurityConfig
     participant LC as LeadController
-    participant DB as PostgreSQL
+    participant DB as Database
+    participant F as Frontend
     
-    A->>F: Clique sur "Voir les leads"
-    F->>F: Récupère le token du localStorage
-    F->>JAF: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
-    
-    Note over JAF: 1. Extrait le JWT
-    JAF->>JAF: jwt = header.substring(7)
-    
-    Note over JAF: 2. Extrait l'email du JWT
-    JAF->>JAF: email = jwtService.extractUsername(jwt)
-    
-    Note over JAF: 3. Charge l'utilisateur
-    JAF->>DB: SELECT * FROM users WHERE email=?
-    DB-->>JAF: User(role=ADMIN)
-    
-    Note over JAF: 4. Valide le token
-    JAF->>JAF: jwtService.isTokenValid() → true
-    
-    Note over JAF: 5. Crée l'Authentication
-    JAF->>JAF: SecurityContext.setAuthentication(<br/>user, authorities=[ROLE_ADMIN])
-    
-    JAF->>SC: Continue vers les règles
-    
-    Note over SC: /api/admin/** → hasRole('ADMIN')<br/>User a ROLE_ADMIN? ✅
-    
+    JAF->>SC: filterChain.doFilter()
+    SC->>SC: /api/admin/** → hasRole('ADMIN')?<br/>User a ROLE_ADMIN ✅
     SC->>LC: Accès autorisé
-    LC->>DB: SELECT * FROM leads<br/>ORDER BY created_at DESC<br/>LIMIT 20
-    DB-->>LC: Liste des leads
-    LC-->>F: 200 OK { content: [...], totalPages: 5 }
-    F-->>A: Affiche le tableau des leads
+    LC->>DB: SELECT * FROM leads
+    DB-->>LC: [leads...]
+    LC-->>F: 200 OK { content: [...] }
 ```
 
 **Requête HTTP** :
