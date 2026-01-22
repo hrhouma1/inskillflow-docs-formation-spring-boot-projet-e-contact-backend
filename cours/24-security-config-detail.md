@@ -873,6 +873,409 @@ DaoAuthenticationProvider utilise UserDetailsService pour charger l'utilisateur 
 
 ---
 
+---
+
+## 15. SCÉNARIOS RÉELS : Qui appelle quoi dans NOTRE projet?
+
+Voici exactement ce qui se passe dans notre projet `e-contact-backend` avec les vrais fichiers.
+
+### SCÉNARIO 1 : L'administrateur se connecte (LOGIN)
+
+**Requête** : `POST /api/auth/login` avec `{"email": "admin@test.com", "password": "admin123"}`
+
+```mermaid
+sequenceDiagram
+    participant Client as Client (Postman/Frontend)
+    participant SF as Spring Security Filter
+    participant SC as SecurityConfig
+    participant AC as AuthController
+    participant AM as AuthenticationManager
+    participant DAP as DaoAuthenticationProvider
+    participant UDS as UserDetailsService<br/>(UserDetailsConfig.java)
+    participant UR as UserRepository
+    participant PE as PasswordEncoder<br/>(BCrypt)
+    participant JS as JwtService
+    participant DB as PostgreSQL
+    
+    Note over Client,DB: ÉTAPE 1 : La requête arrive
+    Client->>SF: POST /api/auth/login
+    
+    Note over SF,SC: ÉTAPE 2 : Vérification des règles
+    SF->>SC: Vérifie requestMatchers()
+    SC-->>SF: "/api/auth/**" → permitAll() ✅
+    
+    Note over SF,AC: ÉTAPE 3 : Pas de JWT requis, passe au Controller
+    SF->>AC: Requête autorisée
+    
+    Note over AC,AM: ÉTAPE 4 : AuthController.login() ligne 27-33
+    AC->>AM: authenticationManager.authenticate(<br/>UsernamePasswordAuthenticationToken(<br/>"admin@test.com", "admin123"))
+    
+    Note over AM,DAP: ÉTAPE 5 : AuthenticationManager délègue
+    AM->>DAP: authenticate()
+    
+    Note over DAP,UDS: ÉTAPE 6 : DaoAuthenticationProvider charge l'utilisateur
+    DAP->>UDS: loadUserByUsername("admin@test.com")
+    
+    Note over UDS,UR: ÉTAPE 7 : UserDetailsConfig.java ligne 17-19
+    UDS->>UR: findByEmail("admin@test.com")
+    UR->>DB: SELECT * FROM users WHERE email='admin@test.com'
+    DB-->>UR: User(id=1, email, password_hash, role=ADMIN)
+    UR-->>UDS: Optional<User>
+    UDS-->>DAP: User (implements UserDetails)
+    
+    Note over DAP,PE: ÉTAPE 8 : Vérification du mot de passe
+    DAP->>PE: matches("admin123", "$2a$10$hash...")
+    PE-->>DAP: true ✅
+    
+    Note over DAP,AM: ÉTAPE 9 : Authentification réussie
+    DAP-->>AM: Authentication(principal=User, authorities=[ROLE_ADMIN])
+    AM-->>AC: Authentication
+    
+    Note over AC,JS: ÉTAPE 10 : Génération du JWT (ligne 36)
+    AC->>JS: jwtService.generateToken(user)
+    JS-->>AC: "eyJhbGciOiJIUzI1NiJ9..."
+    
+    Note over AC,Client: ÉTAPE 11 : Réponse au client
+    AC-->>Client: 200 OK { token: "eyJ...", type: "Bearer", role: "ADMIN" }
+```
+
+### Code correspondant dans notre projet
+
+**1. AuthController.java** (qui appelle `authenticationManager.authenticate`)
+
+```java
+// src/main/java/com/example/contact/controller/AuthController.java
+@PostMapping("/login")
+public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    // ← CETTE LIGNE déclenche toute la chaîne!
+    Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                    request.getEmail(),     // "admin@test.com"
+                    request.getPassword()   // "admin123"
+            )
+    );
+    
+    User user = (User) authentication.getPrincipal();
+    String token = jwtService.generateToken(user);  // Génère le JWT
+    
+    return ResponseEntity.ok(AuthResponse.builder()
+            .token(token)
+            .type("Bearer")
+            .expiresIn(jwtService.getExpiration())
+            .email(user.getEmail())
+            .role(user.getRole().name())
+            .build());
+}
+```
+
+**2. SecurityConfig.java** (configure l'AuthenticationManager)
+
+```java
+// src/main/java/com/example/contact/config/SecurityConfig.java
+
+// Ce Bean est injecté dans AuthController
+@Bean
+public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    return config.getAuthenticationManager();  // Utilise notre AuthenticationProvider
+}
+
+// Ce Bean définit COMMENT vérifier les credentials
+@Bean
+public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService) {
+    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+    authProvider.setUserDetailsService(userDetailsService);  // Comment charger l'utilisateur
+    authProvider.setPasswordEncoder(passwordEncoder());       // Comment vérifier le mot de passe
+    return authProvider;
+}
+
+@Bean
+public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();  // BCrypt pour vérifier les mots de passe
+}
+```
+
+**3. UserDetailsConfig.java** (charge l'utilisateur depuis la DB)
+
+```java
+// src/main/java/com/example/contact/config/UserDetailsConfig.java
+@Bean
+public UserDetailsService userDetailsService() {
+    // Cette lambda est appelée par DaoAuthenticationProvider
+    return username -> userRepository.findByEmail(username)
+            .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé"));
+}
+```
+
+**4. User.java** (implémente UserDetails)
+
+```java
+// src/main/java/com/example/contact/model/User.java
+@Entity
+public class User implements UserDetails {
+    
+    // Appelée par Spring Security pour récupérer les rôles
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        // Retourne: [ROLE_ADMIN] ou [ROLE_SUPER_ADMIN]
+    }
+    
+    // Appelée pour récupérer l'identifiant
+    @Override
+    public String getUsername() {
+        return email;  // On utilise l'email comme username
+    }
+    
+    // Les autres méthodes retournent true (compte actif)
+    @Override
+    public boolean isAccountNonExpired() { return true; }
+    @Override
+    public boolean isAccountNonLocked() { return true; }
+    @Override
+    public boolean isCredentialsNonExpired() { return true; }
+    @Override
+    public boolean isEnabled() { return true; }
+}
+```
+
+---
+
+### SCÉNARIO 2 : Accès à un endpoint protégé (avec JWT)
+
+**Requête** : `GET /api/admin/leads` avec header `Authorization: Bearer eyJ...`
+
+```mermaid
+sequenceDiagram
+    participant Client as Client
+    participant SF as SecurityFilterChain
+    participant JAF as JwtAuthFilter<br/>(notre filtre)
+    participant JS as JwtService
+    participant UDS as UserDetailsService
+    participant UR as UserRepository
+    participant SC as SecurityConfig<br/>(règles)
+    participant LC as LeadController
+    participant DB as PostgreSQL
+    
+    Note over Client,SF: ÉTAPE 1 : Requête avec JWT
+    Client->>SF: GET /api/admin/leads<br/>Authorization: Bearer eyJ...
+    
+    Note over SF,JAF: ÉTAPE 2 : JwtAuthFilter.doFilterInternal() ligne 27
+    SF->>JAF: doFilterInternal(request, response, filterChain)
+    
+    Note over JAF: ÉTAPE 3 : Extraction du token (ligne 33-42)
+    JAF->>JAF: authHeader = request.getHeader("Authorization")<br/>jwt = authHeader.substring(7)
+    
+    Note over JAF,JS: ÉTAPE 4 : Extraction de l'email (ligne 45)
+    JAF->>JS: jwtService.extractUsername(jwt)
+    JS->>JS: Décode le JWT, extrait le "subject"
+    JS-->>JAF: "admin@test.com"
+    
+    Note over JAF,UDS: ÉTAPE 5 : Chargement de l'utilisateur (ligne 48)
+    JAF->>UDS: userDetailsService.loadUserByUsername("admin@test.com")
+    UDS->>UR: findByEmail("admin@test.com")
+    UR->>DB: SELECT * FROM users WHERE email='admin@test.com'
+    DB-->>UR: User
+    UR-->>UDS: User
+    UDS-->>JAF: UserDetails (notre User)
+    
+    Note over JAF,JS: ÉTAPE 6 : Validation du token (ligne 50)
+    JAF->>JS: jwtService.isTokenValid(jwt, userDetails)
+    JS->>JS: Vérifie signature + expiration
+    JS-->>JAF: true ✅
+    
+    Note over JAF: ÉTAPE 7 : Création de l'Authentication (ligne 51-57)
+    JAF->>JAF: UsernamePasswordAuthenticationToken authToken =<br/>new ...Token(userDetails, null, userDetails.getAuthorities())
+    JAF->>JAF: SecurityContextHolder.getContext().setAuthentication(authToken)
+    
+    Note over JAF,SC: ÉTAPE 8 : Continue la chaîne
+    JAF->>SC: filterChain.doFilter() → Vérifie les règles
+    
+    Note over SC: ÉTAPE 9 : Vérification des règles (ligne 53)
+    SC->>SC: "/api/admin/**" → hasRole("ADMIN")<br/>User a ROLE_ADMIN? ✅
+    
+    Note over SC,LC: ÉTAPE 10 : Accès autorisé
+    SC->>LC: Appel de la méthode du Controller
+    LC->>DB: Récupère les leads
+    DB-->>LC: Liste des leads
+    
+    Note over LC,Client: ÉTAPE 11 : Réponse
+    LC-->>Client: 200 OK [{ lead1 }, { lead2 }, ...]
+```
+
+### Code correspondant
+
+**1. JwtAuthFilter.java** (intercepte chaque requête)
+
+```java
+// src/main/java/com/example/contact/security/JwtAuthFilter.java
+@Override
+protected void doFilterInternal(HttpServletRequest request, ...) {
+    
+    // 1. Récupère le header Authorization
+    final String authHeader = request.getHeader("Authorization");
+    
+    // 2. Si pas de token, passe au filtre suivant (sera bloqué plus tard si endpoint protégé)
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        filterChain.doFilter(request, response);
+        return;
+    }
+    
+    // 3. Extrait le JWT (enlève "Bearer ")
+    jwt = authHeader.substring(7);
+    
+    // 4. Extrait l'email du JWT
+    userEmail = jwtService.extractUsername(jwt);
+    
+    // 5. Charge l'utilisateur depuis la DB
+    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+        
+        // 6. Vérifie que le token est valide
+        if (jwtService.isTokenValid(jwt, userDetails)) {
+            // 7. Crée l'objet Authentication
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()  // ← Appelle User.getAuthorities()
+            );
+            
+            // 8. Place l'utilisateur dans le SecurityContext
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+    }
+    
+    // 9. Continue vers le prochain filtre / controller
+    filterChain.doFilter(request, response);
+}
+```
+
+**2. JwtService.java** (valide le JWT)
+
+```java
+// src/main/java/com/example/contact/security/JwtService.java
+
+// Extrait l'email du JWT
+public String extractUsername(String token) {
+    return extractClaim(token, Claims::getSubject);  // Le "subject" contient l'email
+}
+
+// Vérifie si le token est valide
+public boolean isTokenValid(String token, UserDetails userDetails) {
+    final String username = extractUsername(token);
+    return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+}
+```
+
+---
+
+### SCÉNARIO 3 : Accès refusé (pas de JWT)
+
+**Requête** : `GET /api/admin/leads` (sans header Authorization)
+
+```mermaid
+sequenceDiagram
+    participant Client as Client
+    participant JAF as JwtAuthFilter
+    participant SC as SecurityConfig
+    
+    Client->>JAF: GET /api/admin/leads<br/>(pas de header Authorization)
+    
+    JAF->>JAF: authHeader == null?<br/>OUI → filterChain.doFilter()
+    
+    Note over JAF: Pas d'authentification créée<br/>SecurityContext est VIDE
+    
+    JAF->>SC: Continue vers les règles
+    SC->>SC: "/api/admin/**" → hasRole("ADMIN")<br/>Pas d'authentication → ❌
+    
+    SC-->>Client: 401 Unauthorized
+```
+
+---
+
+### SCÉNARIO 4 : Accès public (formulaire de contact)
+
+**Requête** : `POST /api/contact` avec le formulaire
+
+```mermaid
+sequenceDiagram
+    participant Client as Client
+    participant JAF as JwtAuthFilter
+    participant SC as SecurityConfig
+    participant CC as ContactController
+    
+    Client->>JAF: POST /api/contact<br/>(pas de header Authorization)
+    
+    JAF->>JAF: authHeader == null?<br/>OUI → filterChain.doFilter()
+    
+    JAF->>SC: Continue vers les règles
+    SC->>SC: POST "/api/contact" → permitAll() ✅
+    
+    SC->>CC: Accès autorisé
+    CC-->>Client: 201 Created
+```
+
+---
+
+### Tableau récapitulatif : QUI APPELLE QUOI
+
+| Méthode/Classe | Appelée par | Quand? |
+|----------------|-------------|--------|
+| `SecurityConfig.securityFilterChain()` | **Spring Boot** | Au démarrage de l'application |
+| `SecurityConfig.passwordEncoder()` | **Spring Boot** | Au démarrage de l'application |
+| `SecurityConfig.authenticationProvider()` | **Spring Boot** | Au démarrage de l'application |
+| `SecurityConfig.authenticationManager()` | **Spring Boot** | Au démarrage de l'application |
+| `UserDetailsConfig.userDetailsService()` | **Spring Boot** | Au démarrage de l'application |
+| `JwtAuthFilter.doFilterInternal()` | **Spring Security** | À chaque requête HTTP |
+| `UserDetailsService.loadUserByUsername()` | **DaoAuthenticationProvider** (login) ou **JwtAuthFilter** (JWT) | Lors du login OU validation JWT |
+| `User.getAuthorities()` | **Spring Security** | Pour vérifier hasRole() |
+| `User.getUsername()` | **Spring Security / JwtService** | Pour identifier l'utilisateur |
+| `JwtService.extractUsername()` | **JwtAuthFilter** | Validation d'un JWT |
+| `JwtService.isTokenValid()` | **JwtAuthFilter** | Validation d'un JWT |
+| `JwtService.generateToken()` | **AuthController** | Lors du login réussi |
+| `PasswordEncoder.matches()` | **DaoAuthenticationProvider** | Lors du login |
+| `AuthenticationManager.authenticate()` | **AuthController** | Lors du login |
+
+---
+
+### Schéma complet des appels
+
+```mermaid
+graph TB
+    subgraph "Au démarrage (Spring Boot crée les Beans)"
+        START[Spring Boot démarre] --> SC[SecurityConfig]
+        SC --> SFC["@Bean SecurityFilterChain"]
+        SC --> PE["@Bean PasswordEncoder"]
+        SC --> AP["@Bean AuthenticationProvider"]
+        SC --> AM["@Bean AuthenticationManager"]
+        
+        START --> UDC[UserDetailsConfig]
+        UDC --> UDS["@Bean UserDetailsService"]
+        
+        AP -.->|"injecte"| UDS
+        AP -.->|"injecte"| PE
+    end
+    
+    subgraph "À chaque requête"
+        REQ[Requête HTTP] --> JAF[JwtAuthFilter.doFilterInternal]
+        JAF -->|"Si JWT présent"| JS[JwtService.extractUsername]
+        JAF -->|"Si JWT présent"| UDS2[UserDetailsService.loadUserByUsername]
+        UDS2 --> UR[UserRepository.findByEmail]
+        UR --> DB[(PostgreSQL)]
+        JAF -->|"Si JWT valide"| CTX[SecurityContextHolder.setAuthentication]
+    end
+    
+    subgraph "Login spécifiquement"
+        LOGIN[POST /api/auth/login] --> AC[AuthController.login]
+        AC --> AM2[AuthenticationManager.authenticate]
+        AM2 --> AP2[DaoAuthenticationProvider]
+        AP2 --> UDS3[UserDetailsService.loadUserByUsername]
+        AP2 --> PE2[PasswordEncoder.matches]
+        AC --> JS2[JwtService.generateToken]
+    end
+```
+
+---
+
 ## Navigation
 
 | Précédent | Suivant |
