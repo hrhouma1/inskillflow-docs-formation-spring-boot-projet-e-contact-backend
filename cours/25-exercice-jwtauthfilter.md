@@ -19,6 +19,149 @@ Vous travaillez sur une API REST sécurisée avec JWT. Vous devez créer le filt
 
 ---
 
+## Où se trouve JwtAuthFilter dans le projet?
+
+La classe `JwtAuthFilter` est dans le dossier **`security`**, pas dans `config` !
+
+### Structure complète du projet
+
+```
+src/main/java/com/example/contact/
+│
+├── ContactApplication.java          ← Point d'entrée
+│
+├── config/                          ← Configuration
+│   ├── DataInitializer.java         (crée l'admin au démarrage)
+│   ├── OpenApiConfig.java           (Swagger)
+│   ├── SecurityConfig.java          (règles de sécurité)
+│   └── UserDetailsConfig.java       (charge les utilisateurs)
+│
+├── controller/                      ← Endpoints REST
+│   ├── AuthController.java          (/api/auth/login)
+│   ├── ContactController.java       (/api/contact)
+│   └── LeadController.java          (/api/admin/leads)
+│
+├── dto/                             ← Objets de transfert
+│   ├── request/
+│   └── response/
+│
+├── exception/                       ← Gestion des erreurs
+│   ├── GlobalExceptionHandler.java
+│   └── ResourceNotFoundException.java
+│
+├── model/                           ← Entités JPA
+│   ├── Lead.java
+│   └── User.java
+│
+├── repository/                      ← Accès base de données
+│   ├── LeadRepository.java
+│   └── UserRepository.java
+│
+├── security/                        ← SÉCURITÉ JWT ← JwtAuthFilter est ICI!
+│   ├── JwtAuthFilter.java           ← CETTE CLASSE!
+│   └── JwtService.java              (génère/valide les JWT)
+│
+└── service/                         ← Logique métier
+    ├── EmailService.java
+    └── LeadService.java
+```
+
+### Diagramme visuel
+
+```mermaid
+graph TB
+    subgraph "src/main/java/com/example/contact"
+        APP["ContactApplication.java"]
+        
+        subgraph "config/"
+            C1["DataInitializer.java"]
+            C2["OpenApiConfig.java"]
+            C3["SecurityConfig.java"]
+            C4["UserDetailsConfig.java"]
+        end
+        
+        subgraph "controller/"
+            CTRL1["AuthController.java"]
+            CTRL2["ContactController.java"]
+            CTRL3["LeadController.java"]
+        end
+        
+        subgraph "security/ ← ICI!"
+            S1["JwtAuthFilter.java"]
+            S2["JwtService.java"]
+        end
+        
+        subgraph "model/"
+            M1["Lead.java"]
+            M2["User.java"]
+        end
+        
+        subgraph "service/"
+            SVC1["EmailService.java"]
+            SVC2["LeadService.java"]
+        end
+        
+        subgraph "repository/"
+            R1["LeadRepository.java"]
+            R2["UserRepository.java"]
+        end
+    end
+    
+    style S1 fill:#E91E63,color:#fff
+    style S2 fill:#E91E63,color:#fff
+```
+
+### Pourquoi `security/` et pas `config/`?
+
+| Dossier | Contient | Exemple |
+|---------|----------|---------|
+| `config/` | Classes de **configuration** Spring | `@Configuration`, `@Bean` |
+| `security/` | Classes de **logique de sécurité** | Filtres, services JWT |
+
+```mermaid
+graph LR
+    subgraph "config/ = Configuration"
+        A["SecurityConfig.java"]
+        A --> B["CONFIGURE les règles"]
+        B --> C["Quels endpoints sont publics?<br/>Quel encodeur utiliser?"]
+    end
+    
+    subgraph "security/ = Logique"
+        D["JwtAuthFilter.java"]
+        D --> E["EXÉCUTE la logique"]
+        E --> F["Valide le JWT<br/>Authentifie l'utilisateur"]
+    end
+    
+    style A fill:#2196F3,color:#fff
+    style D fill:#E91E63,color:#fff
+```
+
+### Relation entre les classes
+
+```mermaid
+graph TB
+    REQ["Requête HTTP"] --> SC["SecurityConfig.java<br/>(config/)"]
+    SC -->|"addFilterBefore()"| JAF["JwtAuthFilter.java<br/>(security/)"]
+    JAF -->|"utilise"| JS["JwtService.java<br/>(security/)"]
+    JAF -->|"utilise"| UDS["UserDetailsConfig.java<br/>(config/)"]
+    
+    style SC fill:#2196F3,color:#fff
+    style JAF fill:#E91E63,color:#fff
+    style JS fill:#E91E63,color:#fff
+    style UDS fill:#2196F3,color:#fff
+```
+
+### Comment créer le dossier `security/` si vous ne l'avez pas?
+
+Dans votre IDE (VS Code, IntelliJ) :
+
+1. Clic droit sur `src/main/java/com/example/contact/`
+2. New → Directory (ou Package)
+3. Nom : `security`
+4. Créer le fichier `JwtAuthFilter.java` dedans
+
+---
+
 ## Diagramme des 13 étapes
 
 ```mermaid
