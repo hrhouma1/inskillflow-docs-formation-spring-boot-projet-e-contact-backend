@@ -1,27 +1,37 @@
-# Chapitre 2.4 - Couche Service (Logique metier)
+# Chapitre 2.4 - Couche Service (Logique métier)
 
 ## Objectifs du chapitre
 
-- Comprendre le role de la couche Service
-- Implementer la logique metier
-- Gerer les transactions
+- Comprendre le rôle de la couche Service
+- Implémenter la logique métier
+- Gérer les transactions
 
 ---
 
-## 1. Role de la couche Service
+## 1. Rôle de la couche Service
 
-### Responsabilites
+### Responsabilités
 
-1. **Logique metier**: Regles et calculs specifiques au domaine
-2. **Coordination**: Orchestrer les appels aux repositories
-3. **Transactions**: Garantir la coherence des donnees
-4. **Conversion**: Transformer entites en DTOs
+```mermaid
+graph TB
+    S[Service] --> A[Logique métier<br/>Règles et calculs]
+    S --> B[Coordination<br/>Orchestrer les appels]
+    S --> C[Transactions<br/>Garantir la cohérence]
+    S --> D[Conversion<br/>Entity ↔ DTO]
+    
+    style S fill:#4CAF50,color:#fff
+```
+
+1. **Logique métier** : Règles et calculs spécifiques au domaine
+2. **Coordination** : Orchestrer les appels aux repositories
+3. **Transactions** : Garantir la cohérence des données
+4. **Conversion** : Transformer entités en DTOs
 
 ### Ce que le Service NE fait PAS
 
-- Gerer les requetes HTTP (role du Controller)
-- Acceder directement a la base (role du Repository)
-- Connaitre le format des reponses HTTP
+- ❌ Gérer les requêtes HTTP (rôle du Controller)
+- ❌ Accéder directement à la base (rôle du Repository)
+- ❌ Connaître le format des réponses HTTP
 
 ---
 
@@ -29,16 +39,27 @@
 
 ### Anatomie
 
+```mermaid
+graph TB
+    subgraph "Service"
+        A["@Service"] --> A1[Annotation Spring]
+        B["@RequiredArgsConstructor"] --> B1[Injection par constructeur]
+        C["@Transactional"] --> C1[Gestion des transactions]
+        D["Dépendances final"] --> D1[Repository, autres Services]
+        E["Méthodes métier"] --> E1[CRUD + logique]
+    end
+```
+
 ```java
 @Service                              // 1. Annotation Spring
 @RequiredArgsConstructor              // 2. Injection par constructeur
 @Transactional                        // 3. Gestion des transactions (optionnel)
 public class LeadService {
 
-    private final LeadRepository leadRepository;  // 4. Dependances
+    private final LeadRepository leadRepository;  // 4. Dépendances
     private final EmailService emailService;
 
-    public LeadDto createLead(ContactFormRequest request) {  // 5. Methodes metier
+    public LeadDto createLead(ContactFormRequest request) {  // 5. Méthodes métier
         // ...
     }
 }
@@ -46,7 +67,23 @@ public class LeadService {
 
 ---
 
-## 3. LeadService - Implementation complete
+## 3. LeadService - Implémentation complète
+
+### Diagramme des opérations
+
+```mermaid
+flowchart LR
+    subgraph "CRUD"
+        C[Create] --> R[Read]
+        R --> U[Update]
+        U --> D[Delete]
+    end
+    
+    subgraph "Métier"
+        ST[Stats]
+        MAP[Mapping]
+    end
+```
 
 ```java
 package com.example.contact.service;
@@ -76,7 +113,7 @@ public class LeadService {
     
     @Transactional
     public LeadDto createLead(ContactFormRequest request) {
-        // 1. Creer l'entite a partir du DTO
+        // 1. Créer l'entité à partir du DTO
         Lead lead = new Lead();
         lead.setFullName(request.getFullName());
         lead.setEmail(request.getEmail());
@@ -106,7 +143,7 @@ public class LeadService {
     
     public LeadDto getLeadById(Long id) {
         Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Lead non trouve: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Lead non trouvé: " + id));
         return mapToDto(lead);
     }
 
@@ -115,7 +152,7 @@ public class LeadService {
     @Transactional
     public LeadDto updateStatus(Long id, UpdateStatusRequest request) {
         Lead lead = leadRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Lead non trouve: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Lead non trouvé: " + id));
         
         lead.setStatus(request.getStatus());
         Lead updated = leadRepository.save(lead);
@@ -128,7 +165,7 @@ public class LeadService {
     @Transactional
     public void deleteLead(Long id) {
         if (!leadRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Lead non trouve: " + id);
+            throw new ResourceNotFoundException("Lead non trouvé: " + id);
         }
         leadRepository.deleteById(id);
     }
@@ -169,22 +206,40 @@ public class LeadService {
 
 ### @Transactional
 
+```mermaid
+sequenceDiagram
+    participant C as Controller
+    participant S as Service
+    participant R as Repository
+    participant DB as Database
+    
+    C->>S: createLead()
+    Note over S: @Transactional BEGIN
+    S->>R: save(lead)
+    R->>DB: INSERT
+    S->>R: autre opération
+    R->>DB: UPDATE
+    Note over S: Si exception → ROLLBACK
+    Note over S: Sinon → COMMIT
+    S-->>C: LeadDto
+```
+
 ```java
 @Transactional
 public LeadDto createLead(ContactFormRequest request) {
-    // Si une exception est levee, tout est annule (rollback)
+    // Si une exception est levée, tout est annulé (rollback)
     Lead saved = leadRepository.save(lead);
     emailService.sendNotification(saved);
     return mapToDto(saved);
 }
 ```
 
-### Comportement par defaut
+### Comportement par défaut
 
-- **Rollback**: Sur RuntimeException et Error
-- **Pas de rollback**: Sur Exception verifiee (checked)
+- **Rollback** : Sur RuntimeException et Error
+- **Pas de rollback** : Sur Exception vérifiée (checked)
 
-### Configuration avancee
+### Configuration avancée
 
 ```java
 // Rollback sur toutes les exceptions
@@ -199,15 +254,33 @@ public LeadDto createLead(ContactFormRequest request) {
 
 ---
 
-## 5. Conversion Entite <-> DTO
+## 5. Conversion Entité ↔ DTO
+
+### Flux de conversion
+
+```mermaid
+flowchart LR
+    subgraph "Entrée"
+        REQ[Request DTO] --> ENT1[Entity]
+    end
+    
+    subgraph "Base"
+        ENT1 --> DB[(Database)]
+        DB --> ENT2[Entity]
+    end
+    
+    subgraph "Sortie"
+        ENT2 --> RES[Response DTO]
+    end
+```
 
 ### Pourquoi convertir?
 
-1. **Securite**: Ne pas exposer les champs sensibles
-2. **Flexibilite**: L'API peut evoluer sans modifier l'entite
-3. **Performance**: Ne transferer que les champs necessaires
+1. **Sécurité** : Ne pas exposer les champs sensibles
+2. **Flexibilité** : L'API peut évoluer sans modifier l'entité
+3. **Performance** : Ne transférer que les champs nécessaires
 
-### Methode manuelle
+### Méthode manuelle
 
 ```java
 private LeadDto mapToDto(Lead lead) {
@@ -228,7 +301,7 @@ private Lead mapToEntity(ContactFormRequest request) {
 }
 ```
 
-### Alternative: ModelMapper ou MapStruct
+### Alternative : ModelMapper ou MapStruct
 
 ```java
 // Avec ModelMapper (configuration globale)
@@ -256,11 +329,11 @@ private LeadDto mapToDto(Lead lead) {
 public LeadDto getLeadById(Long id) {
     return leadRepository.findById(id)
             .map(this::mapToDto)
-            .orElseThrow(() -> new ResourceNotFoundException("Lead non trouve: " + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Lead non trouvé: " + id));
 }
 ```
 
-### Exception personnalisee
+### Exception personnalisée
 
 ```java
 public class ResourceNotFoundException extends RuntimeException {
@@ -270,23 +343,35 @@ public class ResourceNotFoundException extends RuntimeException {
 }
 ```
 
-L'exception sera interceptee par le GlobalExceptionHandler (voir Module 8).
+L'exception sera interceptée par le GlobalExceptionHandler (voir Module 8).
 
 ---
 
-## 7. Injection de dependances
+## 7. Injection de dépendances
 
-### Injection par constructeur (recommandee)
+### Injection par constructeur (recommandée)
+
+```mermaid
+graph TB
+    subgraph "Au démarrage Spring"
+        A[Crée LeadRepository]
+        B[Crée EmailService]
+        C[Injecte dans LeadService]
+    end
+    
+    A --> C
+    B --> C
+```
 
 ```java
 @Service
-@RequiredArgsConstructor  // Lombok genere le constructeur
+@RequiredArgsConstructor  // Lombok génère le constructeur
 public class LeadService {
     
     private final LeadRepository leadRepository;
     private final EmailService emailService;
     
-    // Lombok genere:
+    // Lombok génère:
     // public LeadService(LeadRepository leadRepository, EmailService emailService) {
     //     this.leadRepository = leadRepository;
     //     this.emailService = emailService;
@@ -296,11 +381,11 @@ public class LeadService {
 
 ### Avantages
 
-1. **Immutabilite**: Les dependances sont final
-2. **Testabilite**: Facile a mocker
-3. **Visibilite**: On voit toutes les dependances
+1. **Immutabilité** : Les dépendances sont final
+2. **Testabilité** : Facile à mocker
+3. **Visibilité** : On voit toutes les dépendances
 
-### Injection par @Autowired (deconseille)
+### Injection par @Autowired (déconseillé)
 
 ```java
 @Service
@@ -316,6 +401,15 @@ public class LeadService {
 ## 8. Services multiples
 
 ### Appeler un autre service
+
+```mermaid
+graph TB
+    LS[LeadService] --> LR[LeadRepository]
+    LS --> ES[EmailService]
+    LS --> AS[AuditService]
+    
+    ES --> MS[MailSender]
+```
 
 ```java
 @Service
@@ -346,38 +440,38 @@ public class LeadService {
 ### 9.1 Un service = un domaine
 
 ```java
-// BON: Service dedie aux leads
+// ✅ BON: Service dédié aux leads
 @Service
 public class LeadService { }
 
-// BON: Service dedie aux emails
+// ✅ BON: Service dédié aux emails
 @Service
 public class EmailService { }
 
-// MAUVAIS: Service fourre-tout
+// ❌ MAUVAIS: Service fourre-tout
 @Service
 public class ApplicationService { }
 ```
 
-### 9.2 Methodes courtes et focalisees
+### 9.2 Méthodes courtes et focalisées
 
 ```java
-// BON: Methodes specifiques
+// ✅ BON: Méthodes spécifiques
 public LeadDto createLead(...) { }
 public LeadDto updateStatus(...) { }
 public void deleteLead(...) { }
 
-// MAUVAIS: Methode qui fait tout
+// ❌ MAUVAIS: Méthode qui fait tout
 public void processLead(String action, ...) { }
 ```
 
-### 9.3 Validation dans le service si necessaire
+### 9.3 Validation dans le service si nécessaire
 
 ```java
 public LeadDto createLead(ContactFormRequest request) {
-    // Validation metier supplementaire
+    // Validation métier supplémentaire
     if (leadRepository.existsByEmail(request.getEmail())) {
-        throw new BusinessException("Un lead avec cet email existe deja");
+        throw new BusinessException("Un lead avec cet email existe déjà");
     }
     // ...
 }
@@ -391,9 +485,9 @@ public LeadDto createLead(ContactFormRequest request) {
 public class LeadService {
     
     public LeadDto createLead(ContactFormRequest request) {
-        log.info("Creation d'un nouveau lead: {}", request.getEmail());
+        log.info("Création d'un nouveau lead: {}", request.getEmail());
         // ...
-        log.debug("Lead cree avec ID: {}", saved.getId());
+        log.debug("Lead créé avec ID: {}", saved.getId());
         return mapToDto(saved);
     }
 }
@@ -401,82 +495,189 @@ public class LeadService {
 
 ---
 
-## 10. Points cles a retenir
+## 10. Points clés à retenir
 
-1. **@Service** marque la couche metier
-2. **@Transactional** garantit la coherence des donnees
-3. **Les DTOs** separent l'API des entites
+```mermaid
+mindmap
+  root((Service))
+    Annotations
+      @Service
+      @Transactional
+      @RequiredArgsConstructor
+    Responsabilités
+      Logique métier
+      Coordination
+      Conversion DTO
+    Bonnes pratiques
+      Un domaine par service
+      Méthodes courtes
+      Injection constructeur
+```
+
+1. **@Service** marque la couche métier
+2. **@Transactional** garantit la cohérence des données
+3. **Les DTOs** séparent l'API des entités
 4. **Injection par constructeur** avec @RequiredArgsConstructor
-5. **Un service = un domaine** metier
+5. **Un service = un domaine** métier
 
 ---
 
 ## QUIZ 2.4 - Couche Service
 
 **1. Quelle annotation marque un service Spring?**
-   - a) @Component
-   - b) @Service
-   - c) @Business
-   - d) @Logic
+- a) @Component
+- b) @Service
+- c) @Business
+- d) @Logic
 
-**2. Que fait @Transactional?**
-   - a) Optimise les performances
-   - b) Garantit la coherence des donnees (rollback si erreur)
-   - c) Securise la methode
-   - d) Met en cache les resultats
+<details>
+<summary>Voir la réponse</summary>
 
-**3. Pourquoi convertir les entites en DTOs?**
-   - a) Securite (ne pas exposer les champs sensibles)
-   - b) Flexibilite (API independante de la base)
-   - c) Performance
-   - d) Toutes les reponses ci-dessus
+**Réponse : b) @Service**
 
-**4. Quelle est la meilleure methode d'injection?**
-   - a) @Autowired sur le champ
-   - b) Setter injection
-   - c) Injection par constructeur
-   - d) Peu importe
-
-**5. VRAI ou FAUX: Un service peut appeler un autre service.**
-
-**6. Sur quel type d'exception @Transactional fait un rollback par defaut?**
-   - a) Toutes les exceptions
-   - b) RuntimeException seulement
-   - c) Exception seulement
-   - d) Aucune
-
-**7. Quelle annotation Lombok genere le constructeur avec les champs final?**
-   - a) @AllArgsConstructor
-   - b) @NoArgsConstructor
-   - c) @RequiredArgsConstructor
-   - d) @Constructor
-
-**8. Completez: Le service coordonne les appels aux _______ et applique la logique metier.**
-
-**9. Que retourne orElseThrow() si l'Optional est vide?**
-   - a) null
-   - b) Une exception
-   - c) Une valeur par defaut
-   - d) Un Optional vide
-
-**10. Ou placer la logique de calcul des statistiques?**
-   - a) Controller
-   - b) Service
-   - c) Repository
-   - d) Model
+@Service est le stéréotype Spring pour la couche métier. C'est une spécialisation de @Component avec une sémantique plus précise.
+</details>
 
 ---
 
-### REPONSES QUIZ 2.4
+**2. Que fait @Transactional?**
+- a) Optimise les performances
+- b) Garantit la cohérence des données (rollback si erreur)
+- c) Sécurise la méthode
+- d) Met en cache les résultats
 
-1. b) @Service
-2. b) Garantit la coherence des donnees (rollback si erreur)
-3. d) Toutes les reponses ci-dessus
-4. c) Injection par constructeur
-5. VRAI
-6. b) RuntimeException seulement
-7. c) @RequiredArgsConstructor
-8. repositories
-9. b) Une exception
-10. b) Service
+<details>
+<summary>Voir la réponse</summary>
 
+**Réponse : b) Garantit la cohérence des données (rollback si erreur)**
+
+@Transactional démarre une transaction. Si une RuntimeException est levée, toutes les modifications sont annulées (rollback).
+</details>
+
+---
+
+**3. Pourquoi convertir les entités en DTOs?**
+- a) Sécurité (ne pas exposer les champs sensibles)
+- b) Flexibilité (API indépendante de la base)
+- c) Performance
+- d) Toutes les réponses ci-dessus
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : d) Toutes les réponses ci-dessus**
+
+Les DTOs permettent de contrôler ce qui est exposé, de faire évoluer l'API indépendamment, et de transférer uniquement les données nécessaires.
+</details>
+
+---
+
+**4. Quelle est la meilleure méthode d'injection?**
+- a) @Autowired sur le champ
+- b) Setter injection
+- c) Injection par constructeur
+- d) Peu importe
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) Injection par constructeur**
+
+L'injection par constructeur permet l'immutabilité (champs final), facilite les tests (mocking), et rend les dépendances visibles.
+</details>
+
+---
+
+**5. VRAI ou FAUX : Un service peut appeler un autre service.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : VRAI**
+
+Un service peut injecter et appeler d'autres services. C'est courant pour la coordination (ex: LeadService appelle EmailService).
+</details>
+
+---
+
+**6. Sur quel type d'exception @Transactional fait un rollback par défaut?**
+- a) Toutes les exceptions
+- b) RuntimeException seulement
+- c) Exception seulement
+- d) Aucune
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) RuntimeException seulement**
+
+Par défaut, le rollback se fait sur RuntimeException et Error. Pour les checked exceptions, il faut configurer rollbackFor.
+</details>
+
+---
+
+**7. Quelle annotation Lombok génère le constructeur avec les champs final?**
+- a) @AllArgsConstructor
+- b) @NoArgsConstructor
+- c) @RequiredArgsConstructor
+- d) @Constructor
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : c) @RequiredArgsConstructor**
+
+@RequiredArgsConstructor génère un constructeur pour tous les champs final et @NonNull. Idéal pour l'injection de dépendances.
+</details>
+
+---
+
+**8. Complétez : Le service coordonne les appels aux _______ et applique la logique métier.**
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : repositories**
+
+Le service est l'intermédiaire entre le controller et les repositories. Il applique la logique métier et coordonne les opérations.
+</details>
+
+---
+
+**9. Que retourne orElseThrow() si l'Optional est vide?**
+- a) null
+- b) Une exception
+- c) Une valeur par défaut
+- d) Un Optional vide
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Une exception**
+
+orElseThrow() lance l'exception fournie si l'Optional est vide. C'est la façon propre de gérer les "non trouvé".
+</details>
+
+---
+
+**10. Où placer la logique de calcul des statistiques?**
+- a) Controller
+- b) Service
+- c) Repository
+- d) Model
+
+<details>
+<summary>Voir la réponse</summary>
+
+**Réponse : b) Service**
+
+Toute logique métier (calculs, agrégations, règles business) appartient au Service. Le Controller ne fait que déléguer.
+</details>
+
+---
+
+## Navigation
+
+| Précédent | Suivant |
+|-----------|---------|
+| [07 - Couche Repository](07-couche-repository.md) | [09 - Couche Controller](09-couche-controller.md) |
