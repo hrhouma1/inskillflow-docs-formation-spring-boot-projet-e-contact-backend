@@ -1,6 +1,6 @@
 ### Module 4 — Rôles et permissions (encore plus détaillé, théorie + vulgarisation)
 
-- Objectif du module
+#### Objectif du module
 - Comprendre comment organiser les droits dans une application Spring Security : rôles vs permissions, comment concevoir une stratégie simple au début puis extensible, et comment appliquer ces droits au bon niveau (URL ou méthode) sans faire n’importe quoi.
 
 ---
