@@ -206,6 +206,8 @@ Mini quiz (pour fixer les idées)
 
 
 
+# Réponse question 1
+
 <details>
 
   Parce que Spring Security applique une règle simple de sécurité : “tout est fermé tant que tu n’as pas décidé quoi ouvrir”.
@@ -225,3 +227,12 @@ Les raisons principales :
    Dès que Security est présent, il installe sa chaîne de filtres et protège l’accès. Tu as un comportement standard (401 pour API, redirection login en web) plutôt qu’un mélange de routes ouvertes/fermées sans logique.
 
 </details>
+
+# Réponse question 2
+
+<details></details>
+
+
+# Réponse question 3
+
+<details></details>
