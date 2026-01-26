@@ -204,3 +204,24 @@ Mini quiz (pour fixer les idées)
 2. Pourquoi tu vois une page login dans un navigateur, mais un 401 dans Postman ?
 3. Si ton controller n’est jamais appelé, quelle est l’explication la plus probable ?
 
+
+
+<details>
+
+  Parce que Spring Security applique une règle simple de sécurité : “tout est fermé tant que tu n’as pas décidé quoi ouvrir”.
+
+Les raisons principales :
+
+1. Éviter les erreurs dangereuses
+   Si une appli démarre avec tout ouvert, un oubli de configuration peut exposer des routes sensibles (admin, données privées, actions de suppression). En sécurité, “par défaut ouvert” est trop risqué.
+
+2. Te forcer à définir explicitement tes règles
+   Spring veut que tu écrives clairement : quelles routes sont publiques, lesquelles demandent une connexion, lesquelles exigent un rôle. Sans ça, il préfère bloquer.
+
+3. Principe de moindre privilège
+   C’est une règle générale en cybersécurité : donner le minimum d’accès par défaut, puis élargir seulement ce qui est nécessaire.
+
+4. Démarrage cohérent et prévisible
+   Dès que Security est présent, il installe sa chaîne de filtres et protège l’accès. Tu as un comportement standard (401 pour API, redirection login en web) plutôt qu’un mélange de routes ouvertes/fermées sans logique.
+
+</details>
