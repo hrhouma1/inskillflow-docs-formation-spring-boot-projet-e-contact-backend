@@ -254,20 +254,20 @@ Ils se complètent selon le besoin.
 
 12. Les erreurs classiques avec JWT
 
-Erreur 1 : mettre des infos sensibles dans le payload
-Signé ≠ chiffré.
+* Erreur 1 : mettre des infos sensibles dans le payload
+- Signé ≠ chiffré.
 
-Erreur 2 : tokens trop longs (1 an)
-Plus long = plus risqué.
+* Erreur 2 : tokens trop longs (1 an)
+- Plus long = plus risqué.
 
-Erreur 3 : pas de rotation refresh token
-Si refresh token est volé, l’attaquant peut durer longtemps.
+* Erreur 3 : pas de rotation refresh token
+- Si refresh token est volé, l’attaquant peut persister longtemps.
 
-Erreur 4 : mauvaise gestion de la clé de signature
-Si la clé est exposée, tout est compromis.
+* Erreur 4 : mauvaise gestion de la clé de signature
+- Si la clé est exposée, tout est compromis.
 
-Erreur 5 : oublier “audience/issuer” quand tu intègres plusieurs services
-Dans un système multi-services, tu veux vérifier que le token est bien destiné à ton API.
+* Erreur 5 : oublier “audience/issuer” quand tu intègres plusieurs services
+- Dans un système multi-services, tu veux vérifier que le token est bien destiné à ton API.
 
 ---
 
