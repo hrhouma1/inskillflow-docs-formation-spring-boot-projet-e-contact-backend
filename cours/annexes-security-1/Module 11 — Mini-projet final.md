@@ -1,268 +1,509 @@
-# Module 11 — Mini-projet final : API "Gestion de cours"
+# Module 11 — Demo Minimaliste Spring Security
 
-## Objectif du module
+## Objectif
 
-Mettre en pratique tous les concepts vus dans les modules précédents en construisant une API complète et sécurisée. Ce projet te permettra de consolider tes connaissances et de voir comment tout s'articule ensemble.
-
----
-
-## 1. Description du projet
-
-Tu vas créer une API REST pour une plateforme de gestion de cours en ligne.
-
-### Les fonctionnalités :
-
-| Fonctionnalité | Accès | Description |
-|----------------|-------|-------------|
-| Lister les cours | Public | Tout le monde peut voir les cours disponibles |
-| Voir un cours | Public | Détails d'un cours spécifique |
-| Créer un cours | ADMIN | Seuls les admins peuvent créer |
-| Modifier un cours | ADMIN | Seuls les admins peuvent modifier |
-| Supprimer un cours | ADMIN | Seuls les admins peuvent supprimer |
-| S'inscrire à un cours | USER | Les utilisateurs connectés peuvent s'inscrire |
-| Voir mes inscriptions | USER | Chaque user voit SES inscriptions |
+Tester Spring Security en 30 minutes avec le projet le plus simple possible.
+Tu vas créer 3 endpoints et voir comment Spring Security les protège.
 
 ---
 
-## 2. Endpoints de l'API
+## Etape 1 : Créer le projet
 
-### Authentification
+### 1.1 Aller sur start.spring.io
 
-| Méthode | Endpoint | Accès | Description |
-|---------|----------|-------|-------------|
-| POST | /api/auth/register | Public | Créer un compte |
-| POST | /api/auth/login | Public | Se connecter (retourne JWT) |
-| POST | /api/auth/refresh | Authentifié | Rafraîchir le token |
-
-### Cours
-
-| Méthode | Endpoint | Accès | Description |
-|---------|----------|-------|-------------|
-| GET | /api/courses | Public | Liste des cours |
-| GET | /api/courses/{id} | Public | Détail d'un cours |
-| POST | /api/courses | ADMIN | Créer un cours |
-| PUT | /api/courses/{id} | ADMIN | Modifier un cours |
-| DELETE | /api/courses/{id} | ADMIN | Supprimer un cours |
-
-### Inscriptions
-
-| Méthode | Endpoint | Accès | Description |
-|---------|----------|-------|-------------|
-| POST | /api/enrollments/{courseId} | USER | S'inscrire à un cours |
-| GET | /api/enrollments/me | USER | Mes inscriptions |
-| DELETE | /api/enrollments/{id} | USER | Se désinscrire (propriétaire) |
-
----
-
-## 3. Modèles de données
-
-### User
-
-```java
-@Entity
-public class User implements UserDetails {
-    @Id @GeneratedValue
-    private Long id;
-    
-    private String email;
-    private String password;
-    private String firstName;
-    private String lastName;
-    
-    @Enumerated(EnumType.STRING)
-    private Role role; // USER, ADMIN
-    
-    private boolean enabled = true;
-}
+```
+https://start.spring.io
 ```
 
-### Course
+### 1.2 Sélectionner ces options
 
-```java
-@Entity
-public class Course {
-    @Id @GeneratedValue
-    private Long id;
-    
-    private String title;
-    private String description;
-    private String instructor;
-    private Integer duration; // en heures
-    private LocalDateTime createdAt;
-}
-```
+| Option | Valeur |
+|--------|--------|
+| Project | Maven |
+| Language | Java |
+| Spring Boot | 3.2.x |
+| Group | com.demo |
+| Artifact | security-demo |
+| Packaging | Jar |
+| Java | 17 |
 
-### Enrollment
+### 1.3 Ajouter ces dépendances
 
-```java
-@Entity
-public class Enrollment {
-    @Id @GeneratedValue
-    private Long id;
-    
-    @ManyToOne
-    private User user;
-    
-    @ManyToOne
-    private Course course;
-    
-    private LocalDateTime enrolledAt;
-}
-```
+- Spring Web
+- Spring Security
+
+### 1.4 Cliquer "Generate" et extraire le zip
 
 ---
 
-## 4. Configuration de sécurité
+## Etape 2 : Créer un Controller simple
 
-### SecurityConfig
+Créer le fichier `src/main/java/com/demo/securitydemo/HelloController.java`
 
 ```java
-@Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
-public class SecurityConfig {
+package com.demo.securitydemo;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, 
-            JwtAuthFilter jwtFilter) throws Exception {
-        return http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfig()))
-            .sessionManagement(s -> s.sessionCreationPolicy(STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                // Public
-                .requestMatchers(GET, "/api/courses/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                // Admin
-                .requestMatchers(POST, "/api/courses").hasRole("ADMIN")
-                .requestMatchers(PUT, "/api/courses/**").hasRole("ADMIN")
-                .requestMatchers(DELETE, "/api/courses/**").hasRole("ADMIN")
-                // Authenticated
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HelloController {
+
+    @GetMapping("/public")
+    public String publicEndpoint() {
+        return "Ceci est PUBLIC - tout le monde peut voir";
+    }
+
+    @GetMapping("/private")
+    public String privateEndpoint() {
+        return "Ceci est PRIVE - il faut etre connecte";
+    }
+
+    @GetMapping("/admin")
+    public String adminEndpoint() {
+        return "Ceci est ADMIN - il faut etre admin";
     }
 }
 ```
 
 ---
 
-## 5. Tests à écrire
+## Etape 3 : Lancer et tester SANS configuration
 
-### Scénarios de test obligatoires
+### 3.1 Lancer l'application
 
-| # | Scénario | Résultat attendu |
-|---|----------|------------------|
-| 1 | GET /api/courses sans auth | 200 OK |
-| 2 | POST /api/courses sans auth | 401 |
-| 3 | POST /api/courses avec USER | 403 |
-| 4 | POST /api/courses avec ADMIN | 201 Created |
-| 5 | DELETE /api/courses/{id} avec USER | 403 |
-| 6 | DELETE /api/courses/{id} avec ADMIN | 204 |
-| 7 | POST /api/enrollments/{id} avec USER | 201 |
-| 8 | GET /api/enrollments/me avec USER | 200 (ses inscriptions) |
-| 9 | Token expiré | 401 |
-| 10 | Token invalide | 401 |
+```bash
+mvn spring-boot:run
+```
 
----
+### 3.2 Tester dans le navigateur
 
-## 6. Étapes de réalisation
+Ouvrir : `http://localhost:8080/public`
 
-### Phase 1 : Setup (30 min)
+**Resultat :** Tu vois une page de login !
 
-1. Créer le projet Spring Boot
-2. Ajouter les dépendances (Security, JPA, JWT)
-3. Configurer la base de données (H2 pour dev)
+**Pourquoi ?** Spring Security bloque TOUT par defaut.
 
-### Phase 2 : Modèles et Repositories (30 min)
+### 3.3 Regarder la console
 
-1. Créer les entités User, Course, Enrollment
-2. Créer les repositories
-3. Implémenter UserDetails dans User
+Tu vas voir un mot de passe genere :
 
-### Phase 3 : Sécurité (1h)
+```
+Using generated security password: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
 
-1. Créer JwtService (génération, validation)
-2. Créer JwtAuthFilter
-3. Configurer SecurityFilterChain
-4. Créer UserDetailsService
+### 3.4 Se connecter
 
-### Phase 4 : Auth (45 min)
+- Username : `user`
+- Password : celui dans la console
 
-1. Créer AuthController (register, login)
-2. Créer les DTOs (LoginRequest, AuthResponse)
-3. Tester avec Postman
-
-### Phase 5 : Cours (30 min)
-
-1. Créer CourseController (CRUD)
-2. Créer CourseService
-3. Tester les permissions
-
-### Phase 6 : Inscriptions (30 min)
-
-1. Créer EnrollmentController
-2. Créer EnrollmentService
-3. Implémenter la logique "propriétaire"
-
-### Phase 7 : Tests (1h)
-
-1. Écrire les tests d'intégration
-2. Valider tous les scénarios 401/403
-3. Tester les cas limites
+**Maintenant tu vois :** "Ceci est PUBLIC - tout le monde peut voir"
 
 ---
 
-## 7. Bonus : OAuth2 Login
+## Etape 4 : Configurer Spring Security
 
-Si tu veux aller plus loin, ajoute :
+### Le probleme actuel
 
-- Login avec Google
-- Login avec GitHub
+| Endpoint | Ce qu'on veut | Ce qui se passe |
+|----------|---------------|-----------------|
+| /public | Accessible a tous | Bloque (login requis) |
+| /private | Login requis | Bloque (login requis) |
+| /admin | Admin requis | Bloque (login requis) |
 
-Cela nécessite :
+### La solution
 
-1. Configurer les credentials OAuth2
-2. Ajouter `spring-boot-starter-oauth2-client`
-3. Mapper l'utilisateur externe vers ton User interne
+Créer le fichier `src/main/java/com/demo/securitydemo/SecurityConfig.java`
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/public").permitAll()
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form.permitAll())
+            .logout(logout -> logout.permitAll());
+        
+        return http.build();
+    }
+}
+```
+
+### Ce que fait chaque ligne
+
+| Ligne | Effet |
+|-------|-------|
+| `@Configuration` | Dit a Spring que c'est une classe de configuration |
+| `@EnableWebSecurity` | Active Spring Security |
+| `@Bean` | Cree un composant Spring |
+| `.requestMatchers("/public").permitAll()` | /public est accessible sans login |
+| `.anyRequest().authenticated()` | Tout le reste demande un login |
+| `.formLogin(form -> form.permitAll())` | Active la page de login |
 
 ---
 
-## 8. Checklist finale
+## Etape 5 : Tester apres configuration
 
-Avant de considérer le projet terminé :
+### Relancer l'application
 
-- [ ] Tous les endpoints fonctionnent
-- [ ] Les routes publiques sont accessibles sans auth
-- [ ] Les routes ADMIN refusent les USER (403)
-- [ ] Les routes protégées refusent sans token (401)
-- [ ] Le token expiré retourne 401
-- [ ] Les inscriptions ne montrent que les données du propriétaire
-- [ ] Les réponses d'erreur sont en JSON
-- [ ] CORS est configuré pour le front
-- [ ] Les mots de passe sont hashés (BCrypt)
-- [ ] Les tests passent
+```bash
+mvn spring-boot:run
+```
+
+### Tester /public
+
+```
+http://localhost:8080/public
+```
+
+**Resultat :** Tu vois directement "Ceci est PUBLIC" (pas de login)
+
+### Tester /private
+
+```
+http://localhost:8080/private
+```
+
+**Resultat :** Redirection vers /login
+
+### Tester /admin
+
+```
+http://localhost:8080/admin
+```
+
+**Resultat :** Redirection vers /login
 
 ---
 
-## 9. Résumé
+## Etape 6 : Ajouter des utilisateurs
 
-Ce mini-projet couvre :
+### Probleme actuel
 
-- **Authentification** : JWT, login, register
-- **Autorisation** : rôles (USER/ADMIN), propriétaire de données
-- **Sécurité API** : stateless, CORS, erreurs JSON
-- **Tests** : scénarios 401/403/200
-- **Architecture** : séparation des responsabilités
+On a un seul utilisateur (`user`) avec mot de passe random.
+On veut :
+- Un utilisateur normal
+- Un administrateur
 
-En complétant ce projet, tu auras une compréhension solide de Spring Security dans un contexte réel.
+### Modifier SecurityConfig.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/public").permitAll()
+                .requestMatchers("/admin").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form.permitAll())
+            .logout(logout -> logout.permitAll());
+        
+        return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        var user = User.builder()
+            .username("user")
+            .password(passwordEncoder().encode("user123"))
+            .roles("USER")
+            .build();
+
+        var admin = User.builder()
+            .username("admin")
+            .password(passwordEncoder().encode("admin123"))
+            .roles("ADMIN")
+            .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+### Nouvelle ligne ajoutee
+
+```java
+.requestMatchers("/admin").hasRole("ADMIN")
+```
+
+Cette ligne dit : seul un ADMIN peut acceder a /admin
 
 ---
 
-## Mini quiz final
+## Etape 7 : Tester les roles
 
-1. Pourquoi un USER ne peut pas créer de cours même s'il est authentifié ?
-2. Comment s'assurer qu'un USER ne voit que SES inscriptions ?
-3. Quelle est la différence entre désactiver CSRF et le configurer correctement ?
+### Relancer l'application
 
+```bash
+mvn spring-boot:run
+```
+
+### Tableau des tests
+
+| Test | URL | Login | Resultat attendu |
+|------|-----|-------|------------------|
+| 1 | /public | aucun | OK (200) |
+| 2 | /private | aucun | Redirection login |
+| 3 | /private | user/user123 | OK (200) |
+| 4 | /admin | aucun | Redirection login |
+| 5 | /admin | user/user123 | ERREUR 403 Forbidden |
+| 6 | /admin | admin/admin123 | OK (200) |
+
+### Test 5 : Le plus important
+
+Quand tu te connectes avec `user/user123` et tu vas sur `/admin` :
+
+**Tu vois :** Erreur 403 Forbidden
+
+**Pourquoi ?** Tu es connecte (authentifie) mais tu n'as pas le role ADMIN (pas autorise)
+
+---
+
+## Etape 8 : Comprendre 401 vs 403
+
+| Code | Nom | Signification |
+|------|-----|---------------|
+| 401 | Unauthorized | Tu n'es pas connecte |
+| 403 | Forbidden | Tu es connecte mais pas le droit |
+
+### Analogie simple
+
+- **401** = Tu n'as pas montre ta carte d'identite
+- **403** = Tu as montre ta carte mais tu n'as pas acces a cette zone
+
+---
+
+## Etape 9 : Tester avec Postman/curl
+
+### Pour voir les vrais codes HTTP
+
+```bash
+curl -v http://localhost:8080/public
+```
+
+Resultat : HTTP 200
+
+```bash
+curl -v http://localhost:8080/private
+```
+
+Resultat : HTTP 302 (redirection vers login)
+
+```bash
+curl -v -u user:user123 http://localhost:8080/private
+```
+
+Resultat : HTTP 200
+
+```bash
+curl -v -u user:user123 http://localhost:8080/admin
+```
+
+Resultat : HTTP 403
+
+```bash
+curl -v -u admin:admin123 http://localhost:8080/admin
+```
+
+Resultat : HTTP 200
+
+---
+
+## Resume : Ce que tu as appris
+
+| Concept | Ce que ca fait |
+|---------|----------------|
+| `@EnableWebSecurity` | Active Spring Security |
+| `permitAll()` | Tout le monde peut acceder |
+| `authenticated()` | Il faut etre connecte |
+| `hasRole("ADMIN")` | Il faut avoir le role ADMIN |
+| `UserDetailsService` | Definit les utilisateurs |
+| `PasswordEncoder` | Encode les mots de passe |
+| 401 | Pas connecte |
+| 403 | Connecte mais pas le droit |
+
+---
+
+## Exercice : A toi de jouer
+
+### Niveau 1 : Ajouter un endpoint
+
+Ajouter `/user` accessible seulement aux USER et ADMIN
+
+<details>
+<summary>Solution</summary>
+
+Dans le controller :
+```java
+@GetMapping("/user")
+public String userEndpoint() {
+    return "Ceci est pour les USER";
+}
+```
+
+Dans SecurityConfig :
+```java
+.requestMatchers("/user").hasAnyRole("USER", "ADMIN")
+```
+
+</details>
+
+### Niveau 2 : Ajouter un role MODERATOR
+
+Creer un utilisateur "modo" avec le role MODERATOR qui peut acceder a /user mais pas a /admin
+
+<details>
+<summary>Solution</summary>
+
+```java
+var modo = User.builder()
+    .username("modo")
+    .password(passwordEncoder().encode("modo123"))
+    .roles("MODERATOR")
+    .build();
+
+return new InMemoryUserDetailsManager(user, admin, modo);
+```
+
+Et dans les regles :
+```java
+.requestMatchers("/user").hasAnyRole("USER", "ADMIN", "MODERATOR")
+```
+
+</details>
+
+---
+
+## Fichiers finaux
+
+### HelloController.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HelloController {
+
+    @GetMapping("/public")
+    public String publicEndpoint() {
+        return "Ceci est PUBLIC - tout le monde peut voir";
+    }
+
+    @GetMapping("/private")
+    public String privateEndpoint() {
+        return "Ceci est PRIVE - il faut etre connecte";
+    }
+
+    @GetMapping("/admin")
+    public String adminEndpoint() {
+        return "Ceci est ADMIN - il faut etre admin";
+    }
+}
+```
+
+### SecurityConfig.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/public").permitAll()
+                .requestMatchers("/admin").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form.permitAll())
+            .logout(logout -> logout.permitAll());
+        
+        return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        var user = User.builder()
+            .username("user")
+            .password(passwordEncoder().encode("user123"))
+            .roles("USER")
+            .build();
+
+        var admin = User.builder()
+            .username("admin")
+            .password(passwordEncoder().encode("admin123"))
+            .roles("ADMIN")
+            .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+---
+
+## Prochaine etape
+
+Une fois que tu maitrises ca, tu peux passer a :
+- JWT (Module 6)
+- Base de donnees pour les utilisateurs (Module 3)
+- OAuth2 (Module 8)
