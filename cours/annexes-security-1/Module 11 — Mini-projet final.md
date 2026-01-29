@@ -1,4 +1,4 @@
-# Module 11 — Demo Minimaliste Spring Security
+# Module 11 — Démo Minimaliste Spring Security
 
 ## Objectif
 
@@ -7,7 +7,7 @@ Tu vas créer 3 endpoints et voir comment Spring Security les protège.
 
 ---
 
-## Etape 1 : Créer le projet
+## Étape 1 : Créer le projet
 
 ### 1.1 Aller sur start.spring.io
 
@@ -36,7 +36,7 @@ https://start.spring.io
 
 ---
 
-## Etape 2 : Créer un Controller simple
+## Étape 2 : Créer un Controller simple
 
 Créer le fichier `src/main/java/com/demo/securitydemo/HelloController.java`
 
@@ -56,19 +56,19 @@ public class HelloController {
 
     @GetMapping("/private")
     public String privateEndpoint() {
-        return "Ceci est PRIVE - il faut etre connecte";
+        return "Ceci est PRIVE - il faut être connecté";
     }
 
     @GetMapping("/admin")
     public String adminEndpoint() {
-        return "Ceci est ADMIN - il faut etre admin";
+        return "Ceci est ADMIN - il faut être admin";
     }
 }
 ```
 
 ---
 
-## Etape 3 : Lancer et tester SANS configuration
+## Étape 3 : Lancer et tester SANS configuration
 
 ### 3.1 Lancer l'application
 
@@ -80,13 +80,13 @@ mvn spring-boot:run
 
 Ouvrir : `http://localhost:8080/public`
 
-**Resultat :** Tu vois une page de login !
+**Résultat :** Tu vois une page de login !
 
-**Pourquoi ?** Spring Security bloque TOUT par defaut.
+**Pourquoi ?** Spring Security bloque TOUT par défaut.
 
 ### 3.3 Regarder la console
 
-Tu vas voir un mot de passe genere :
+Tu vas voir un mot de passe généré :
 
 ```
 Using generated security password: a1b2c3d4-e5f6-7890-abcd-ef1234567890
@@ -101,15 +101,15 @@ Using generated security password: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 
 ---
 
-## Etape 4 : Configurer Spring Security
+## Étape 4 : Configurer Spring Security
 
-### Le probleme actuel
+### Le problème actuel
 
 | Endpoint | Ce qu'on veut | Ce qui se passe |
 |----------|---------------|-----------------|
-| /public | Accessible a tous | Bloque (login requis) |
-| /private | Login requis | Bloque (login requis) |
-| /admin | Admin requis | Bloque (login requis) |
+| /public | Accessible à tous | Bloqué (login requis) |
+| /private | Login requis | Bloqué (login requis) |
+| /admin | Admin requis | Bloqué (login requis) |
 
 ### La solution
 
@@ -147,16 +147,16 @@ public class SecurityConfig {
 
 | Ligne | Effet |
 |-------|-------|
-| `@Configuration` | Dit a Spring que c'est une classe de configuration |
+| `@Configuration` | Dit à Spring que c'est une classe de configuration |
 | `@EnableWebSecurity` | Active Spring Security |
-| `@Bean` | Cree un composant Spring |
+| `@Bean` | Crée un composant Spring |
 | `.requestMatchers("/public").permitAll()` | /public est accessible sans login |
 | `.anyRequest().authenticated()` | Tout le reste demande un login |
 | `.formLogin(form -> form.permitAll())` | Active la page de login |
 
 ---
 
-## Etape 5 : Tester apres configuration
+## Étape 5 : Tester après configuration
 
 ### Relancer l'application
 
@@ -170,7 +170,7 @@ mvn spring-boot:run
 http://localhost:8080/public
 ```
 
-**Resultat :** Tu vois directement "Ceci est PUBLIC" (pas de login)
+**Résultat :** Tu vois directement "Ceci est PUBLIC" (pas de login)
 
 ### Tester /private
 
@@ -178,7 +178,7 @@ http://localhost:8080/public
 http://localhost:8080/private
 ```
 
-**Resultat :** Redirection vers /login
+**Résultat :** Redirection vers /login
 
 ### Tester /admin
 
@@ -186,13 +186,13 @@ http://localhost:8080/private
 http://localhost:8080/admin
 ```
 
-**Resultat :** Redirection vers /login
+**Résultat :** Redirection vers /login
 
 ---
 
-## Etape 6 : Ajouter des utilisateurs
+## Étape 6 : Ajouter des utilisateurs
 
-### Probleme actuel
+### Problème actuel
 
 On a un seul utilisateur (`user`) avec mot de passe random.
 On veut :
@@ -257,17 +257,17 @@ public class SecurityConfig {
 }
 ```
 
-### Nouvelle ligne ajoutee
+### Nouvelle ligne ajoutée
 
 ```java
 .requestMatchers("/admin").hasRole("ADMIN")
 ```
 
-Cette ligne dit : seul un ADMIN peut acceder a /admin
+Cette ligne dit : seul un ADMIN peut accéder à /admin
 
 ---
 
-## Etape 7 : Tester les roles
+## Étape 7 : Tester les rôles
 
 ### Relancer l'application
 
@@ -277,7 +277,7 @@ mvn spring-boot:run
 
 ### Tableau des tests
 
-| Test | URL | Login | Resultat attendu |
+| Test | URL | Login | Résultat attendu |
 |------|-----|-------|------------------|
 | 1 | /public | aucun | OK (200) |
 | 2 | /private | aucun | Redirection login |
@@ -292,25 +292,25 @@ Quand tu te connectes avec `user/user123` et tu vas sur `/admin` :
 
 **Tu vois :** Erreur 403 Forbidden
 
-**Pourquoi ?** Tu es connecte (authentifie) mais tu n'as pas le role ADMIN (pas autorise)
+**Pourquoi ?** Tu es connecté (authentifié) mais tu n'as pas le rôle ADMIN (pas autorisé)
 
 ---
 
-## Etape 8 : Comprendre 401 vs 403
+## Étape 8 : Comprendre 401 vs 403
 
 | Code | Nom | Signification |
 |------|-----|---------------|
-| 401 | Unauthorized | Tu n'es pas connecte |
-| 403 | Forbidden | Tu es connecte mais pas le droit |
+| 401 | Unauthorized | Tu n'es pas connecté |
+| 403 | Forbidden | Tu es connecté mais pas le droit |
 
 ### Analogie simple
 
-- **401** = Tu n'as pas montre ta carte d'identite
-- **403** = Tu as montre ta carte mais tu n'as pas acces a cette zone
+- **401** = Tu n'as pas montré ta carte d'identité
+- **403** = Tu as montré ta carte mais tu n'as pas accès à cette zone
 
 ---
 
-## Etape 9 : Tester avec Postman/curl
+## Étape 9 : Tester avec Postman/curl
 
 ### Pour voir les vrais codes HTTP
 
@@ -318,50 +318,50 @@ Quand tu te connectes avec `user/user123` et tu vas sur `/admin` :
 curl -v http://localhost:8080/public
 ```
 
-Resultat : HTTP 200
+Résultat : HTTP 200
 
 ```bash
 curl -v http://localhost:8080/private
 ```
 
-Resultat : HTTP 302 (redirection vers login)
+Résultat : HTTP 302 (redirection vers login)
 
 ```bash
 curl -v -u user:user123 http://localhost:8080/private
 ```
 
-Resultat : HTTP 200
+Résultat : HTTP 200
 
 ```bash
 curl -v -u user:user123 http://localhost:8080/admin
 ```
 
-Resultat : HTTP 403
+Résultat : HTTP 403
 
 ```bash
 curl -v -u admin:admin123 http://localhost:8080/admin
 ```
 
-Resultat : HTTP 200
+Résultat : HTTP 200
 
 ---
 
-## Resume : Ce que tu as appris
+## Résumé : Ce que tu as appris
 
-| Concept | Ce que ca fait |
+| Concept | Ce que ça fait |
 |---------|----------------|
 | `@EnableWebSecurity` | Active Spring Security |
-| `permitAll()` | Tout le monde peut acceder |
-| `authenticated()` | Il faut etre connecte |
-| `hasRole("ADMIN")` | Il faut avoir le role ADMIN |
-| `UserDetailsService` | Definit les utilisateurs |
+| `permitAll()` | Tout le monde peut accéder |
+| `authenticated()` | Il faut être connecté |
+| `hasRole("ADMIN")` | Il faut avoir le rôle ADMIN |
+| `UserDetailsService` | Définit les utilisateurs |
 | `PasswordEncoder` | Encode les mots de passe |
-| 401 | Pas connecte |
-| 403 | Connecte mais pas le droit |
+| 401 | Pas connecté |
+| 403 | Connecté mais pas le droit |
 
 ---
 
-## Exercice : A toi de jouer
+## Exercice : À toi de jouer
 
 ### Niveau 1 : Ajouter un endpoint
 
@@ -385,9 +385,9 @@ Dans SecurityConfig :
 
 </details>
 
-### Niveau 2 : Ajouter un role MODERATOR
+### Niveau 2 : Ajouter un rôle MODERATOR
 
-Creer un utilisateur "modo" avec le role MODERATOR qui peut acceder a /user mais pas a /admin
+Créer un utilisateur "modo" avec le rôle MODERATOR qui peut accéder à /user mais pas à /admin
 
 <details>
 <summary>Solution</summary>
@@ -402,7 +402,7 @@ var modo = User.builder()
 return new InMemoryUserDetailsManager(user, admin, modo);
 ```
 
-Et dans les regles :
+Et dans les règles :
 ```java
 .requestMatchers("/user").hasAnyRole("USER", "ADMIN", "MODERATOR")
 ```
@@ -431,12 +431,12 @@ public class HelloController {
 
     @GetMapping("/private")
     public String privateEndpoint() {
-        return "Ceci est PRIVE - il faut etre connecte";
+        return "Ceci est PRIVE - il faut être connecté";
     }
 
     @GetMapping("/admin")
     public String adminEndpoint() {
-        return "Ceci est ADMIN - il faut etre admin";
+        return "Ceci est ADMIN - il faut être admin";
     }
 }
 ```
@@ -501,12 +501,12 @@ public class SecurityConfig {
 
 ---
 
-## Problemes courants et solutions
+## Problèmes courants et solutions
 
-### L'application ne demarre pas
+### L'application ne démarre pas
 
 <details>
-<summary>Erreur : Port 8080 deja utilise</summary>
+<summary>Erreur : Port 8080 déjà utilisé</summary>
 
 **Message :**
 ```
@@ -543,9 +543,9 @@ Cannot resolve symbol 'HttpSecurity'
 
 **Solution :**
 
-1. Verifier que la dependance Spring Security est dans pom.xml
+1. Vérifier que la dépendance Spring Security est dans pom.xml
 2. Faire Maven > Reload Project (ou clic droit > Maven > Reload)
-3. Verifier les imports en haut du fichier
+3. Vérifier les imports en haut du fichier
 
 </details>
 
@@ -556,11 +556,11 @@ Cannot resolve symbol 'HttpSecurity'
 <details>
 <summary>J'ai une erreur 404 sur /login</summary>
 
-**Cause :** Tu as peut-etre desactive formLogin
+**Cause :** Tu as peut-être désactivé formLogin
 
 **Solution :**
 
-Verifier que tu as cette ligne dans SecurityConfig :
+Vérifier que tu as cette ligne dans SecurityConfig :
 ```java
 .formLogin(form -> form.permitAll())
 ```
@@ -570,13 +570,13 @@ Verifier que tu as cette ligne dans SecurityConfig :
 <details>
 <summary>J'ai une page blanche</summary>
 
-**Cause :** Peut-etre une erreur dans le controller
+**Cause :** Peut-être une erreur dans le controller
 
 **Solution :**
 
-1. Verifier la console pour des erreurs
-2. Verifier que le controller a `@RestController`
-3. Verifier que les methodes ont `@GetMapping`
+1. Vérifier la console pour des erreurs
+2. Vérifier que le controller a `@RestController`
+3. Vérifier que les méthodes ont `@GetMapping`
 
 </details>
 
@@ -587,26 +587,26 @@ Verifier que tu as cette ligne dans SecurityConfig :
 <details>
 <summary>Bad credentials avec user/user123</summary>
 
-**Cause :** Tu utilises encore l'utilisateur par defaut
+**Cause :** Tu utilises encore l'utilisateur par défaut
 
 **Solution :**
 
-1. Verifier que tu as ajoute `userDetailsService()` dans SecurityConfig
-2. Verifier que tu as ajoute `passwordEncoder()`
-3. Relancer l'application apres les modifications
+1. Vérifier que tu as ajouté `userDetailsService()` dans SecurityConfig
+2. Vérifier que tu as ajouté `passwordEncoder()`
+3. Relancer l'application après les modifications
 
 </details>
 
 <details>
 <summary>Le mot de passe dans la console ne fonctionne plus</summary>
 
-**Cause :** Tu as defini ton propre UserDetailsService
+**Cause :** Tu as défini ton propre UserDetailsService
 
 **Explication :**
-Quand tu crees un `@Bean UserDetailsService`, Spring n'utilise plus l'utilisateur par defaut.
+Quand tu crées un `@Bean UserDetailsService`, Spring n'utilise plus l'utilisateur par défaut.
 
 **Solution :**
-Utiliser les credentials que tu as definis :
+Utiliser les credentials que tu as définis :
 - user / user123
 - admin / admin123
 
@@ -614,21 +614,21 @@ Utiliser les credentials que tu as definis :
 
 ---
 
-### Probleme avec les roles
+### Problème avec les rôles
 
 <details>
 <summary>403 Forbidden alors que je suis admin</summary>
 
 **Causes possibles :**
 
-1. Tu es connecte avec le mauvais utilisateur
-2. Le role n'est pas bien configure
+1. Tu es connecté avec le mauvais utilisateur
+2. Le rôle n'est pas bien configuré
 
 **Solution :**
 
-1. Se deconnecter : aller sur `http://localhost:8080/logout`
+1. Se déconnecter : aller sur `http://localhost:8080/logout`
 2. Se reconnecter avec admin/admin123
-3. Verifier que dans SecurityConfig tu as :
+3. Vérifier que dans SecurityConfig tu as :
 ```java
 .roles("ADMIN")  // pas .roles("ROLE_ADMIN")
 ```
@@ -636,7 +636,7 @@ Utiliser les credentials que tu as definis :
 </details>
 
 <details>
-<summary>Je veux que USER et ADMIN accedent a /user</summary>
+<summary>Je veux que USER et ADMIN accèdent à /user</summary>
 
 **Solution :**
 
@@ -649,12 +649,12 @@ Utiliser `hasAnyRole` :
 
 ---
 
-### Probleme avec /public
+### Problème avec /public
 
 <details>
 <summary>/public demande toujours un login</summary>
 
-**Cause :** L'ordre des regles est important
+**Cause :** L'ordre des règles est important
 
 **Mauvais :**
 ```java
@@ -664,8 +664,8 @@ Utiliser `hasAnyRole` :
 
 **Bon :**
 ```java
-.requestMatchers("/public").permitAll()  // d'abord les regles specifiques
-.anyRequest().authenticated()            // puis la regle generale
+.requestMatchers("/public").permitAll()  // d'abord les règles spécifiques
+.anyRequest().authenticated()            // puis la règle générale
 ```
 
 </details>
@@ -681,7 +681,7 @@ Utiliser `hasAnyRole` :
 
 **Solution :**
 
-Verifier les imports :
+Vérifier les imports :
 ```java
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -693,7 +693,7 @@ import org.springframework.security.web.SecurityFilterChain;
 <details>
 <summary>No bean of type PasswordEncoder</summary>
 
-**Cause :** Tu as oublie de creer le bean PasswordEncoder
+**Cause :** Tu as oublié de créer le bean PasswordEncoder
 
 **Solution :**
 
@@ -709,7 +709,7 @@ public PasswordEncoder passwordEncoder() {
 
 ---
 
-### Comment se deconnecter
+### Comment se déconnecter
 
 <details>
 <summary>Je veux changer d'utilisateur</summary>
@@ -720,7 +720,7 @@ public PasswordEncoder passwordEncoder() {
 2. Cliquer sur "Log Out"
 3. Se reconnecter avec un autre utilisateur
 
-Ou dans un nouvel onglet en navigation privee.
+Ou dans un nouvel onglet en navigation privée.
 
 </details>
 
@@ -754,15 +754,15 @@ Invoke-WebRequest -Uri http://localhost:8080/public
 
 2. Ou installer curl : https://curl.se/windows/
 
-**Solution :** Utiliser Postman a la place
+**Solution :** Utiliser Postman à la place
 
 </details>
 
 ---
 
-## Prochaine etape
+## Prochaine étape
 
-Une fois que tu maitrises ca, tu peux passer a :
+Une fois que tu maîtrises ça, tu peux passer à :
 - JWT (Module 6)
-- Base de donnees pour les utilisateurs (Module 3)
+- Base de données pour les utilisateurs (Module 3)
 - OAuth2 (Module 8)
