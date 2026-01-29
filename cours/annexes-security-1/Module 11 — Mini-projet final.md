@@ -763,6 +763,202 @@ Invoke-WebRequest -Uri http://localhost:8080/public
 ## Prochaine étape
 
 Une fois que tu maîtrises ça, tu peux passer à :
-- JWT (Module 6)
+- JWT (Module 12)
 - Base de données pour les utilisateurs (Module 3)
 - OAuth2 (Module 8)
+
+---
+
+## Annexe 1 : Structure complète du projet
+
+<details>
+<summary>Voir la structure du projet</summary>
+
+### Arborescence des fichiers
+
+```
+security-demo/
+├── pom.xml
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/
+│       │       └── demo/
+│       │           └── securitydemo/
+│       │               ├── SecurityDemoApplication.java
+│       │               ├── HelloController.java
+│       │               └── SecurityConfig.java
+│       └── resources/
+│           └── application.properties
+```
+
+### Tous les fichiers
+
+---
+
+#### pom.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+    </parent>
+    
+    <groupId>com.demo</groupId>
+    <artifactId>security-demo</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>security-demo</name>
+    
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+---
+
+#### SecurityDemoApplication.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class SecurityDemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SecurityDemoApplication.class, args);
+    }
+}
+```
+
+---
+
+#### HelloController.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HelloController {
+
+    @GetMapping("/public")
+    public String publicEndpoint() {
+        return "Ceci est PUBLIC - tout le monde peut voir";
+    }
+
+    @GetMapping("/private")
+    public String privateEndpoint() {
+        return "Ceci est PRIVE - il faut être connecté";
+    }
+
+    @GetMapping("/admin")
+    public String adminEndpoint() {
+        return "Ceci est ADMIN - il faut être admin";
+    }
+}
+```
+
+---
+
+#### SecurityConfig.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/public").permitAll()
+                .requestMatchers("/admin").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form.permitAll())
+            .logout(logout -> logout.permitAll());
+        
+        return http.build();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        var user = User.builder()
+            .username("user")
+            .password(passwordEncoder().encode("user123"))
+            .roles("USER")
+            .build();
+
+        var admin = User.builder()
+            .username("admin")
+            .password(passwordEncoder().encode("admin123"))
+            .roles("ADMIN")
+            .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+---
+
+#### application.properties
+
+```properties
+# Fichier vide pour le Module 11
+# (pas de configuration nécessaire)
+```
+
+</details>

@@ -878,3 +878,436 @@ Pas de changement (garde celui du Module 11).
 - Module 13 : Ajouter une base de données pour les utilisateurs
 - Module 14 : Refresh token
 
+---
+
+## Annexe 1 : Structure complète du projet
+
+<details>
+<summary>Voir la structure du projet</summary>
+
+### Arborescence des fichiers
+
+```
+security-demo/
+├── pom.xml
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── com/
+│       │       └── demo/
+│       │           └── securitydemo/
+│       │               ├── SecurityDemoApplication.java
+│       │               ├── HelloController.java
+│       │               ├── AuthController.java
+│       │               ├── SecurityConfig.java
+│       │               ├── JwtService.java
+│       │               └── JwtFilter.java
+│       └── resources/
+│           └── application.properties
+```
+
+### Tous les fichiers
+
+---
+
+#### pom.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.0</version>
+    </parent>
+    
+    <groupId>com.demo</groupId>
+    <artifactId>security-demo</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>security-demo</name>
+    
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        
+        <!-- JWT -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+---
+
+#### application.properties
+
+```properties
+jwt.secret=MaCleSecreteTresLongueAuMoins256BitsMinimumPourHMACSHA256
+```
+
+---
+
+#### SecurityDemoApplication.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class SecurityDemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SecurityDemoApplication.class, args);
+    }
+}
+```
+
+---
+
+#### HelloController.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class HelloController {
+
+    @GetMapping("/public")
+    public String publicEndpoint() {
+        return "Ceci est PUBLIC - tout le monde peut voir";
+    }
+
+    @GetMapping("/private")
+    public String privateEndpoint() {
+        return "Ceci est PRIVE - il faut être connecté";
+    }
+
+    @GetMapping("/admin")
+    public String adminEndpoint() {
+        return "Ceci est ADMIN - il faut être admin";
+    }
+}
+```
+
+---
+
+#### AuthController.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthController(JwtService jwtService, PasswordEncoder passwordEncoder) {
+        this.jwtService = jwtService;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostMapping("/login")
+    public Map<String, String> login(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
+
+        if ("user".equals(username) && "user123".equals(password)) {
+            String token = jwtService.generateToken(username);
+            return Map.of("token", token);
+        }
+        if ("admin".equals(username) && "admin123".equals(password)) {
+            String token = jwtService.generateToken(username);
+            return Map.of("token", token);
+        }
+
+        throw new RuntimeException("Bad credentials");
+    }
+}
+```
+
+---
+
+#### JwtService.java
+
+```java
+package com.demo.securitydemo;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.security.Key;
+import java.util.Date;
+
+@Service
+public class JwtService {
+
+    @Value("${jwt.secret}")
+    private String secret;
+
+    public String generateToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 3600000))
+                .signWith(getKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String extractUsername(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
+    }
+
+    public boolean isValid(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(getKey())
+                    .build()
+                    .parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private Key getKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes());
+    }
+}
+```
+
+---
+
+#### JwtFilter.java
+
+```java
+package com.demo.securitydemo;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.List;
+
+@Component
+public class JwtFilter extends OncePerRequestFilter {
+
+    private final JwtService jwtService;
+
+    public JwtFilter(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = authHeader.substring(7);
+
+        if (jwtService.isValid(token)) {
+            String username = jwtService.extractUsername(token);
+            String role = "admin".equals(username) ? "ROLE_ADMIN" : "ROLE_USER";
+
+            var auth = new UsernamePasswordAuthenticationToken(
+                    username,
+                    null,
+                    List.of(new SimpleGrantedAuthority(role))
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+
+        filterChain.doFilter(request, response);
+    }
+}
+```
+
+---
+
+#### SecurityConfig.java
+
+```java
+package com.demo.securitydemo;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
+
+    public SecurityConfig(JwtFilter jwtFilter) {
+        this.jwtFilter = jwtFilter;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/public").permitAll()
+                .requestMatchers("/admin").hasRole("ADMIN")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+</details>
+
+---
+
+## Annexe 2 : Comparaison Module 11 vs Module 12
+
+<details>
+<summary>Voir les différences</summary>
+
+### Fichiers
+
+| Fichier | Module 11 | Module 12 |
+|---------|-----------|-----------|
+| pom.xml | Web + Security | Web + Security + JWT |
+| application.properties | Vide | jwt.secret=... |
+| SecurityDemoApplication.java | Identique | Identique |
+| HelloController.java | Identique | Identique |
+| SecurityConfig.java | formLogin | stateless + JwtFilter |
+| AuthController.java | N'existe pas | Créé |
+| JwtService.java | N'existe pas | Créé |
+| JwtFilter.java | N'existe pas | Créé |
+
+### SecurityConfig.java : Différences
+
+| Module 11 | Module 12 |
+|-----------|-----------|
+| `.formLogin(form -> form.permitAll())` | Supprimé |
+| `.logout(logout -> logout.permitAll())` | Supprimé |
+| - | `.csrf(csrf -> csrf.disable())` |
+| - | `.sessionManagement(session -> STATELESS)` |
+| - | `.addFilterBefore(jwtFilter, ...)` |
+| `UserDetailsService` bean | Supprimé |
+
+### Comment on se connecte
+
+| Module 11 | Module 12 |
+|-----------|-----------|
+| Formulaire HTML | POST /auth/login avec JSON |
+| Cookie de session | Header Authorization: Bearer token |
+| Serveur garde la session | Serveur ne garde rien (stateless) |
+
+### Commandes de test
+
+**Module 11 :**
+```bash
+# Dans le navigateur
+http://localhost:8080/private
+# → Page de login
+# → Entrer user/user123
+# → OK
+```
+
+**Module 12 :**
+```bash
+# Étape 1 : Obtenir le token
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user","password":"user123"}'
+
+# Étape 2 : Utiliser le token
+curl http://localhost:8080/private \
+  -H "Authorization: Bearer eyJhbG..."
+```
+
+</details>
+
