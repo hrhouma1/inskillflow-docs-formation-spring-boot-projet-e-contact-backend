@@ -962,3 +962,147 @@ public class SecurityConfig {
 ```
 
 </details>
+
+---
+
+## Annexe 2 : Tester avec REST Client (.http)
+
+<details>
+<summary>Voir le fichier de test</summary>
+
+### C'est quoi REST Client ?
+
+REST Client est une extension pour VS Code et IntelliJ qui permet de tester des requêtes HTTP directement dans l'éditeur.
+
+### Installation
+
+**VS Code :**
+1. Ouvrir Extensions (Ctrl+Shift+X)
+2. Chercher "REST Client"
+3. Installer l'extension de Huachao Mao
+
+**IntelliJ :**
+- Déjà inclus (fichiers .http supportés nativement)
+
+### Créer le fichier de test
+
+Créer un fichier `test.http` ou `test.rest` à la racine du projet :
+
+```
+security-demo/
+├── test.http          ← Créer ce fichier
+├── pom.xml
+└── src/
+```
+
+### Contenu du fichier test.http
+
+```http
+### =============================================
+### Module 11 - Tests Spring Security (Form Login)
+### =============================================
+
+### -----------------------------------------
+### Test 1 : Accéder à /public (sans auth)
+### Résultat attendu : 200 OK
+### -----------------------------------------
+GET http://localhost:8080/public
+
+### -----------------------------------------
+### Test 2 : Accéder à /private (sans auth)
+### Résultat attendu : 302 Redirect vers /login
+### -----------------------------------------
+GET http://localhost:8080/private
+
+### -----------------------------------------
+### Test 3 : Accéder à /admin (sans auth)
+### Résultat attendu : 302 Redirect vers /login
+### -----------------------------------------
+GET http://localhost:8080/admin
+
+### -----------------------------------------
+### Test 4 : Se connecter avec USER
+### Résultat attendu : 302 Redirect (session créée)
+### -----------------------------------------
+POST http://localhost:8080/login
+Content-Type: application/x-www-form-urlencoded
+
+username=user&password=user123
+
+### -----------------------------------------
+### Test 5 : Accéder à /private avec Basic Auth (user)
+### Résultat attendu : 200 OK
+### -----------------------------------------
+GET http://localhost:8080/private
+Authorization: Basic dXNlcjp1c2VyMTIz
+
+### -----------------------------------------
+### Test 6 : Accéder à /admin avec Basic Auth (user)
+### Résultat attendu : 403 Forbidden
+### -----------------------------------------
+GET http://localhost:8080/admin
+Authorization: Basic dXNlcjp1c2VyMTIz
+
+### -----------------------------------------
+### Test 7 : Se connecter avec ADMIN
+### Résultat attendu : 302 Redirect (session créée)
+### -----------------------------------------
+POST http://localhost:8080/login
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=admin123
+
+### -----------------------------------------
+### Test 8 : Accéder à /admin avec Basic Auth (admin)
+### Résultat attendu : 200 OK
+### -----------------------------------------
+GET http://localhost:8080/admin
+Authorization: Basic YWRtaW46YWRtaW4xMjM=
+
+### -----------------------------------------
+### Test 9 : Mauvais mot de passe
+### Résultat attendu : 401 Unauthorized
+### -----------------------------------------
+GET http://localhost:8080/private
+Authorization: Basic dXNlcjptYXV2YWlz
+```
+
+### Comment utiliser
+
+1. Ouvrir le fichier `test.http`
+2. Cliquer sur "Send Request" au-dessus de chaque requête
+3. Voir la réponse dans le panneau de droite
+
+### Les codes Basic Auth
+
+| Utilisateur | Basic Auth (Base64) |
+|-------------|---------------------|
+| user:user123 | `dXNlcjp1c2VyMTIz` |
+| admin:admin123 | `YWRtaW46YWRtaW4xMjM=` |
+| user:mauvais | `dXNlcjptYXV2YWlz` |
+
+### Comment générer un Basic Auth
+
+```bash
+# Linux/Mac
+echo -n "user:user123" | base64
+
+# Windows PowerShell
+[Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("user:user123"))
+```
+
+### Tableau des résultats attendus
+
+| Test | Endpoint | Auth | Résultat |
+|------|----------|------|----------|
+| 1 | /public | Aucune | 200 OK |
+| 2 | /private | Aucune | 302 Redirect |
+| 3 | /admin | Aucune | 302 Redirect |
+| 4 | /login | Form (user) | 302 Redirect |
+| 5 | /private | Basic (user) | 200 OK |
+| 6 | /admin | Basic (user) | 403 Forbidden |
+| 7 | /login | Form (admin) | 302 Redirect |
+| 8 | /admin | Basic (admin) | 200 OK |
+| 9 | /private | Basic (mauvais) | 401 Unauthorized |
+
+</details>

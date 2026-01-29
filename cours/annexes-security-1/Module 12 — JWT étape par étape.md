@@ -1311,3 +1311,207 @@ curl http://localhost:8080/private \
 
 </details>
 
+---
+
+## Annexe 3 : Tester avec REST Client (.http)
+
+<details>
+<summary>Voir le fichier de test</summary>
+
+### Créer le fichier de test
+
+Créer un fichier `test-jwt.http` à la racine du projet :
+
+```
+security-demo/
+├── test-jwt.http      ← Créer ce fichier
+├── pom.xml
+└── src/
+```
+
+### Contenu du fichier test-jwt.http
+
+```http
+### =============================================
+### Module 12 - Tests Spring Security avec JWT
+### =============================================
+
+### -----------------------------------------
+### Test 1 : Accéder à /public (sans token)
+### Résultat attendu : 200 OK
+### -----------------------------------------
+GET http://localhost:8080/public
+
+### -----------------------------------------
+### Test 2 : Accéder à /private (sans token)
+### Résultat attendu : 403 Forbidden
+### -----------------------------------------
+GET http://localhost:8080/private
+
+### -----------------------------------------
+### Test 3 : Accéder à /admin (sans token)
+### Résultat attendu : 403 Forbidden
+### -----------------------------------------
+GET http://localhost:8080/admin
+
+### -----------------------------------------
+### Test 4 : Login avec USER
+### Résultat attendu : 200 OK + token
+### COPIER LE TOKEN POUR LES TESTS SUIVANTS
+### -----------------------------------------
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+    "username": "user",
+    "password": "user123"
+}
+
+### -----------------------------------------
+### Test 5 : Login avec ADMIN
+### Résultat attendu : 200 OK + token
+### COPIER LE TOKEN POUR LES TESTS SUIVANTS
+### -----------------------------------------
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin123"
+}
+
+### -----------------------------------------
+### Test 6 : Login avec mauvais mot de passe
+### Résultat attendu : 500 Internal Server Error
+### -----------------------------------------
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+    "username": "user",
+    "password": "mauvais"
+}
+
+### -----------------------------------------
+### Test 7 : Accéder à /private avec token USER
+### Résultat attendu : 200 OK
+### REMPLACER {{token_user}} par le vrai token
+### -----------------------------------------
+GET http://localhost:8080/private
+Authorization: Bearer {{token_user}}
+
+### -----------------------------------------
+### Test 8 : Accéder à /admin avec token USER
+### Résultat attendu : 403 Forbidden
+### -----------------------------------------
+GET http://localhost:8080/admin
+Authorization: Bearer {{token_user}}
+
+### -----------------------------------------
+### Test 9 : Accéder à /admin avec token ADMIN
+### Résultat attendu : 200 OK
+### REMPLACER {{token_admin}} par le vrai token
+### -----------------------------------------
+GET http://localhost:8080/admin
+Authorization: Bearer {{token_admin}}
+
+### -----------------------------------------
+### Test 10 : Token invalide
+### Résultat attendu : 403 Forbidden
+### -----------------------------------------
+GET http://localhost:8080/private
+Authorization: Bearer token_bidon_invalide
+
+### -----------------------------------------
+### Test 11 : Token mal formé (sans Bearer)
+### Résultat attendu : 403 Forbidden
+### -----------------------------------------
+GET http://localhost:8080/private
+Authorization: eyJhbGciOiJIUzI1NiJ9.xxx
+```
+
+### Comment utiliser
+
+**Étape 1 :** Exécuter le Test 4 (login user)
+
+**Étape 2 :** Copier le token de la réponse :
+```json
+{
+    "token": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwiaWF0..."
+}
+```
+
+**Étape 3 :** Remplacer `{{token_user}}` par le token copié dans les tests 7 et 8
+
+**Étape 4 :** Exécuter le Test 5 (login admin) et copier le token
+
+**Étape 5 :** Remplacer `{{token_admin}}` par le token admin dans le test 9
+
+### Tableau des résultats attendus
+
+| Test | Endpoint | Token | Résultat |
+|------|----------|-------|----------|
+| 1 | /public | Aucun | 200 OK |
+| 2 | /private | Aucun | 403 Forbidden |
+| 3 | /admin | Aucun | 403 Forbidden |
+| 4 | /auth/login | user/user123 | 200 + token |
+| 5 | /auth/login | admin/admin123 | 200 + token |
+| 6 | /auth/login | user/mauvais | 500 Error |
+| 7 | /private | Token user | 200 OK |
+| 8 | /admin | Token user | 403 Forbidden |
+| 9 | /admin | Token admin | 200 OK |
+| 10 | /private | Token invalide | 403 Forbidden |
+| 11 | /private | Sans Bearer | 403 Forbidden |
+
+### Version avec variables (VS Code REST Client)
+
+Créer un fichier `test-jwt-vars.http` :
+
+```http
+### Variables
+@baseUrl = http://localhost:8080
+@token_user = 
+@token_admin = 
+
+### Login USER - Copier le token dans @token_user
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "user",
+    "password": "user123"
+}
+
+### Login ADMIN - Copier le token dans @token_admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin123"
+}
+
+### Test /public
+GET {{baseUrl}}/public
+
+### Test /private avec token user
+GET {{baseUrl}}/private
+Authorization: Bearer {{token_user}}
+
+### Test /admin avec token user (403)
+GET {{baseUrl}}/admin
+Authorization: Bearer {{token_user}}
+
+### Test /admin avec token admin (200)
+GET {{baseUrl}}/admin
+Authorization: Bearer {{token_admin}}
+```
+
+**Comment utiliser les variables :**
+1. Exécuter le login
+2. Copier le token de la réponse
+3. Coller dans `@token_user = ` en haut du fichier
+4. Exécuter les autres tests
+
+</details>
+
