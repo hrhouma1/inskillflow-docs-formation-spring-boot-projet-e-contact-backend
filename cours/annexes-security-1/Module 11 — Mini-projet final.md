@@ -501,6 +501,265 @@ public class SecurityConfig {
 
 ---
 
+## Problemes courants et solutions
+
+### L'application ne demarre pas
+
+<details>
+<summary>Erreur : Port 8080 deja utilise</summary>
+
+**Message :**
+```
+Web server failed to start. Port 8080 was already in use.
+```
+
+**Solution :**
+
+Option 1 : Changer le port dans `application.properties`
+```properties
+server.port=8081
+```
+
+Option 2 : Tuer le processus qui utilise le port
+```bash
+# Windows
+netstat -ano | findstr :8080
+taskkill /PID <numero> /F
+
+# Mac/Linux
+lsof -i :8080
+kill -9 <numero>
+```
+
+</details>
+
+<details>
+<summary>Erreur : Cannot resolve symbol</summary>
+
+**Message :**
+```
+Cannot resolve symbol 'HttpSecurity'
+```
+
+**Solution :**
+
+1. Verifier que la dependance Spring Security est dans pom.xml
+2. Faire Maven > Reload Project (ou clic droit > Maven > Reload)
+3. Verifier les imports en haut du fichier
+
+</details>
+
+---
+
+### La page de login ne s'affiche pas
+
+<details>
+<summary>J'ai une erreur 404 sur /login</summary>
+
+**Cause :** Tu as peut-etre desactive formLogin
+
+**Solution :**
+
+Verifier que tu as cette ligne dans SecurityConfig :
+```java
+.formLogin(form -> form.permitAll())
+```
+
+</details>
+
+<details>
+<summary>J'ai une page blanche</summary>
+
+**Cause :** Peut-etre une erreur dans le controller
+
+**Solution :**
+
+1. Verifier la console pour des erreurs
+2. Verifier que le controller a `@RestController`
+3. Verifier que les methodes ont `@GetMapping`
+
+</details>
+
+---
+
+### Je ne peux pas me connecter
+
+<details>
+<summary>Bad credentials avec user/user123</summary>
+
+**Cause :** Tu utilises encore l'utilisateur par defaut
+
+**Solution :**
+
+1. Verifier que tu as ajoute `userDetailsService()` dans SecurityConfig
+2. Verifier que tu as ajoute `passwordEncoder()`
+3. Relancer l'application apres les modifications
+
+</details>
+
+<details>
+<summary>Le mot de passe dans la console ne fonctionne plus</summary>
+
+**Cause :** Tu as defini ton propre UserDetailsService
+
+**Explication :**
+Quand tu crees un `@Bean UserDetailsService`, Spring n'utilise plus l'utilisateur par defaut.
+
+**Solution :**
+Utiliser les credentials que tu as definis :
+- user / user123
+- admin / admin123
+
+</details>
+
+---
+
+### Probleme avec les roles
+
+<details>
+<summary>403 Forbidden alors que je suis admin</summary>
+
+**Causes possibles :**
+
+1. Tu es connecte avec le mauvais utilisateur
+2. Le role n'est pas bien configure
+
+**Solution :**
+
+1. Se deconnecter : aller sur `http://localhost:8080/logout`
+2. Se reconnecter avec admin/admin123
+3. Verifier que dans SecurityConfig tu as :
+```java
+.roles("ADMIN")  // pas .roles("ROLE_ADMIN")
+```
+
+</details>
+
+<details>
+<summary>Je veux que USER et ADMIN accedent a /user</summary>
+
+**Solution :**
+
+Utiliser `hasAnyRole` :
+```java
+.requestMatchers("/user").hasAnyRole("USER", "ADMIN")
+```
+
+</details>
+
+---
+
+### Probleme avec /public
+
+<details>
+<summary>/public demande toujours un login</summary>
+
+**Cause :** L'ordre des regles est important
+
+**Mauvais :**
+```java
+.anyRequest().authenticated()
+.requestMatchers("/public").permitAll()  // trop tard !
+```
+
+**Bon :**
+```java
+.requestMatchers("/public").permitAll()  // d'abord les regles specifiques
+.anyRequest().authenticated()            // puis la regle generale
+```
+
+</details>
+
+---
+
+### Erreurs de compilation
+
+<details>
+<summary>The method authorizeHttpRequests is undefined</summary>
+
+**Cause :** Mauvaise version de Spring Security ou imports manquants
+
+**Solution :**
+
+Verifier les imports :
+```java
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+```
+
+</details>
+
+<details>
+<summary>No bean of type PasswordEncoder</summary>
+
+**Cause :** Tu as oublie de creer le bean PasswordEncoder
+
+**Solution :**
+
+Ajouter dans SecurityConfig :
+```java
+@Bean
+public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+}
+```
+
+</details>
+
+---
+
+### Comment se deconnecter
+
+<details>
+<summary>Je veux changer d'utilisateur</summary>
+
+**Solution :**
+
+1. Aller sur `http://localhost:8080/logout`
+2. Cliquer sur "Log Out"
+3. Se reconnecter avec un autre utilisateur
+
+Ou dans un nouvel onglet en navigation privee.
+
+</details>
+
+---
+
+### Tester avec curl ne fonctionne pas
+
+<details>
+<summary>curl retourne du HTML au lieu de JSON</summary>
+
+**Cause :** Spring renvoie la page de login
+
+**Solution :**
+
+Utiliser l'option `-u` pour l'authentification Basic :
+```bash
+curl -u user:user123 http://localhost:8080/private
+```
+
+</details>
+
+<details>
+<summary>curl: command not found</summary>
+
+**Solution Windows :**
+
+1. Utiliser PowerShell avec Invoke-WebRequest :
+```powershell
+Invoke-WebRequest -Uri http://localhost:8080/public
+```
+
+2. Ou installer curl : https://curl.se/windows/
+
+**Solution :** Utiliser Postman a la place
+
+</details>
+
+---
+
 ## Prochaine etape
 
 Une fois que tu maitrises ca, tu peux passer a :
