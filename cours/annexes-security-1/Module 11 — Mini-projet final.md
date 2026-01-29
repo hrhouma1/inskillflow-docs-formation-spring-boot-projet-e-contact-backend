@@ -1,4 +1,4 @@
-# Module 10 — Mini-projet final : API "Gestion de cours"
+# Module 11 — Mini-projet final : API "Gestion de cours"
 
 ## Objectif du module
 
