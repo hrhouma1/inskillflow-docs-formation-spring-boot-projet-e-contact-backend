@@ -702,22 +702,188 @@ Tu dois voir 3 lignes maintenant.
 
 ---
 
+---
+
+# PARTIE EXERCICE : TROUVER ET CORRIGER LES ERREURS
+
+---
+
+Si tu fais l'exercice avec le dossier `exercice-security-demo-module-13/`, voici les fichiers avec les erreurs volontaires et leurs solutions.
+
+---
+
+## Fichier 1 : pom.xml (AVEC ERREURS)
+
+Voici le fichier `pom.xml` du dossier `exercice-security-demo-module-13/` **avec 4 erreurs volontaires** :
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.2</version>   <!-- ERREUR 1 : Version 4.0.2 n'existe pas ! -->
+        <relativePath/>
+    </parent>
+    <groupId>com.demo</groupId>
+    <artifactId>security-demo</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>  <!-- ERREUR 2 : webmvc n'existe pas ! -->
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>  <!-- ERREUR 3 : n'existe pas ! -->
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>  <!-- ERREUR 4 : n'existe pas ! -->
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JWT (correct) -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <!-- ... autres dépendances JWT ... -->
+
+        <!-- JPA et H2 (correct) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+</project>
+```
+
+### Les 4 erreurs dans pom.xml
+
+| # | Ligne | Erreur | Problème |
+|---|-------|--------|----------|
+| 1 | `<version>4.0.2</version>` | Version inexistante | Spring Boot 4.x n'existe pas |
+| 2 | `spring-boot-starter-webmvc` | Artifact inexistant | Le bon nom est `spring-boot-starter-web` |
+| 3 | `spring-boot-starter-security-test` | Artifact inexistant | Le bon nom est `spring-security-test` |
+| 4 | `spring-boot-starter-webmvc-test` | Artifact inexistant | Le bon nom est `spring-boot-starter-test` |
+
+---
+
+## Fichier 2 : User.java (AVEC ERREUR)
+
+Voici le fichier `User.java` **avec 1 erreur volontaire** :
+
+```java
+package com.demo.security_demo;
+
+import jakarta.persistence.*;;   // <-- ERREUR : Double point-virgule !!
+
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(unique = true, nullable = false)
+    private String username;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false)
+    private String role;
+
+    // Constructeurs, Getters, Setters...
+}
+```
+
+### L'erreur dans User.java
+
+| Ligne | Erreur | Problème |
+|-------|--------|----------|
+| `import jakarta.persistence.*;;` | Double point-virgule `;;` | Erreur de syntaxe Java |
+
+---
+
+## Fichier 3 : SecurityConfig.java (AVEC ERREUR)
+
+Voici le fichier `SecurityConfig.java` **avec 1 erreur volontaire** :
+
+```java
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))  // <-- ERREUR : CSRF actif !
+        .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/h2-console/**").permitAll()
+            .requestMatchers("/auth/**").permitAll()
+            .requestMatchers("/public").permitAll()
+            .requestMatchers("/admin").hasRole("ADMIN")
+            .anyRequest().authenticated())
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+    return http.build();
+}
+```
+
+### L'erreur dans SecurityConfig.java
+
+| Ligne | Erreur | Problème |
+|-------|--------|----------|
+| `.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))` | CSRF partiellement désactivé | Bloque les requêtes POST sur `/auth/login` |
+
+Le CSRF n'est désactivé **que** pour `/h2-console/**`, mais pas pour `/auth/**`. Donc `POST /auth/login` retourne **403 Forbidden**.
+
+---
+
+---
+
+# SOLUTIONS
+
+---
+
 ## Problèmes courants et solutions
 
 ### Problèmes de configuration pom.xml
 
 <details>
-<summary>spring-boot-starter-parent version 4.x n'existe pas</summary>
+<summary>ERREUR 1 : spring-boot-starter-parent version 4.x n'existe pas</summary>
 
 **Cause :** La version 4.x de Spring Boot n'existe pas encore. La dernière version stable est 3.x.
 
-**Erreur :**
+**Erreur dans la console :**
 ```
 Could not find artifact org.springframework.boot:spring-boot-starter-parent:pom:4.0.2
 ```
 
-**Solution :**
-Dans pom.xml, changer :
+**Avant (ERREUR) :**
+```xml
+<version>4.0.2</version>
+```
+
+**Après (SOLUTION) :**
 ```xml
 <parent>
     <groupId>org.springframework.boot</groupId>
@@ -729,11 +895,21 @@ Dans pom.xml, changer :
 </details>
 
 <details>
-<summary>spring-boot-starter-webmvc n'existe pas</summary>
+<summary>ERREUR 2 : spring-boot-starter-webmvc n'existe pas</summary>
 
 **Cause :** L'artifact correct est `spring-boot-starter-web`, pas `spring-boot-starter-webmvc`.
 
-**Solution :**
+**Erreur dans la console :**
+```
+Could not find artifact org.springframework.boot:spring-boot-starter-webmvc
+```
+
+**Avant (ERREUR) :**
+```xml
+<artifactId>spring-boot-starter-webmvc</artifactId>
+```
+
+**Après (SOLUTION) :**
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -744,12 +920,16 @@ Dans pom.xml, changer :
 </details>
 
 <details>
-<summary>spring-boot-starter-webmvc-test n'existe pas</summary>
+<summary>ERREUR 3 : spring-boot-starter-webmvc-test n'existe pas</summary>
 
 **Cause :** Cet artifact n'existe pas.
 
-**Solution :**
-Utiliser `spring-boot-starter-test` :
+**Avant (ERREUR) :**
+```xml
+<artifactId>spring-boot-starter-webmvc-test</artifactId>
+```
+
+**Après (SOLUTION) :**
 ```xml
 <dependency>
     <groupId>org.springframework.boot</groupId>
@@ -761,11 +941,16 @@ Utiliser `spring-boot-starter-test` :
 </details>
 
 <details>
-<summary>spring-boot-starter-security-test n'existe pas</summary>
+<summary>ERREUR 4 : spring-boot-starter-security-test n'existe pas</summary>
 
-**Cause :** L'artifact correct est `spring-security-test`.
+**Cause :** L'artifact correct est `spring-security-test` (pas `spring-boot-starter-security-test`).
 
-**Solution :**
+**Avant (ERREUR) :**
+```xml
+<artifactId>spring-boot-starter-security-test</artifactId>
+```
+
+**Après (SOLUTION) :**
 ```xml
 <dependency>
     <groupId>org.springframework.security</groupId>
@@ -779,16 +964,21 @@ Utiliser `spring-boot-starter-test` :
 ### Problèmes de syntaxe Java
 
 <details>
-<summary>Double point-virgule dans les imports</summary>
+<summary>ERREUR 5 : Double point-virgule dans les imports</summary>
 
 **Cause :** Erreur de frappe dans le fichier Java.
 
-**Erreur :**
-```java
-import jakarta.persistence.*;;
+**Erreur de compilation :**
+```
+';' expected
 ```
 
-**Solution :**
+**Avant (ERREUR) :**
+```java
+import jakarta.persistence.*;;   // Double point-virgule !!
+```
+
+**Après (SOLUTION) :**
 ```java
 import jakarta.persistence.*;
 ```
@@ -798,25 +988,40 @@ import jakarta.persistence.*;
 ### Problèmes de sécurité (403 Forbidden)
 
 <details>
-<summary>403 sur /auth/login</summary>
+<summary>ERREUR 6 : 403 sur /auth/login</summary>
 
-**Cause :** CSRF est activé et bloque les requêtes POST.
+**Cause :** CSRF est activé et bloque les requêtes POST sur `/auth/**`.
 
-**Solution :**
-Dans SecurityConfig.java, désactiver CSRF :
+**Symptôme :**
+```bash
+curl -X POST http://localhost:8081/auth/login ...
+# Retourne : 403 Forbidden
+```
+
+**Avant (ERREUR) :**
+```java
+.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
+```
+Ici, CSRF n'est désactivé **que** pour `/h2-console/**`, mais pas pour `/auth/**`.
+
+**Après (SOLUTION) :**
 ```java
 http
-    .csrf(csrf -> csrf.disable())
+    .csrf(csrf -> csrf.disable())  // Désactiver CSRF complètement pour une API REST
 ```
 
 </details>
 
 <details>
-<summary>403 sur /h2-console</summary>
+<summary>ERREUR 7 : 403 sur /h2-console</summary>
 
-**Cause :** SecurityConfig ne l'autorise pas ou les frames sont bloquées.
+**Cause :** Les frames sont bloquées par défaut (X-Frame-Options).
 
-**Solution :**
+**Symptôme :**
+- La console H2 affiche une page blanche
+- Ou erreur "Refused to display in a frame"
+
+**Après (SOLUTION) :**
 Les 3 lignes suivantes sont nécessaires :
 ```java
 http
@@ -833,9 +1038,14 @@ http
 ### Problèmes de connexion H2 Console
 
 <details>
-<summary>400 Bad Request sur /h2-console</summary>
+<summary>ERREUR 8 : 400 Bad Request sur /h2-console</summary>
 
 **Cause :** "Request header is too large" - le navigateur envoie trop de cookies.
+
+**Symptôme dans la console :**
+```
+java.lang.IllegalArgumentException: Request header is too large
+```
 
 **Solution 1 :** Ouvrir en navigation privée (Ctrl+Shift+N)
 
@@ -849,7 +1059,7 @@ server.max-http-request-header-size=48KB
 </details>
 
 <details>
-<summary>Confusion entre connexion H2 et connexion JWT</summary>
+<summary>ERREUR 9 : Confusion entre connexion H2 et connexion JWT</summary>
 
 **Explication :**
 
@@ -867,7 +1077,7 @@ La page de connexion H2 demande les identifiants de la **base de données**, pas
 ### Problèmes de port
 
 <details>
-<summary>Port 8081 already in use</summary>
+<summary>ERREUR 10 : Port 8081 already in use</summary>
 
 **Cause :** Une autre instance de l'application tourne déjà.
 
@@ -894,9 +1104,14 @@ kill -9 XXXX
 ### Problèmes de base de données
 
 <details>
-<summary>Table USERS not found</summary>
+<summary>ERREUR 11 : Table USERS not found</summary>
 
 **Cause :** JPA n'a pas créé la table.
+
+**Symptôme :**
+```
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "USERS" not found
+```
 
 **Solution :**
 1. Vérifier `spring.jpa.hibernate.ddl-auto=create-drop` dans application.properties
@@ -906,9 +1121,13 @@ kill -9 XXXX
 </details>
 
 <details>
-<summary>Le nouveau user n'a pas de rôle</summary>
+<summary>ERREUR 12 : Le nouveau user n'a pas de rôle</summary>
 
 **Cause :** Le rôle n'est pas défini dans /register.
+
+**Symptôme :**
+- User créé mais rôle = null
+- 403 Forbidden sur tous les endpoints
 
 **Solution :**
 Vérifier dans AuthController.register() :
@@ -918,18 +1137,20 @@ user.setRole("USER");
 
 </details>
 
-### Tableau récapitulatif des corrections
+---
 
-| Fichier | Problème | Correction |
-|---------|----------|------------|
-| pom.xml | Version 4.0.2 n'existe pas | Changer à 3.2.0 |
-| pom.xml | spring-boot-starter-webmvc | Changer à spring-boot-starter-web |
-| pom.xml | spring-boot-starter-webmvc-test | Supprimer ou utiliser spring-boot-starter-test |
-| pom.xml | spring-boot-starter-security-test | Changer à spring-security-test |
-| User.java | Double point-virgule ;; | Corriger à ; |
-| SecurityConfig.java | CSRF bloque /auth/** | Désactiver CSRF |
-| SecurityConfig.java | Frames bloquées pour H2 | Désactiver frameOptions |
-| application.properties | Header trop large | Ajouter max-http-request-header-size=48KB |
+### Tableau récapitulatif des 8 erreurs de l'exercice
+
+| # | Fichier | Erreur | Solution |
+|---|---------|--------|----------|
+| 1 | pom.xml | Version 4.0.2 n'existe pas | Changer à 3.2.0 |
+| 2 | pom.xml | spring-boot-starter-webmvc | Changer à spring-boot-starter-web |
+| 3 | pom.xml | spring-boot-starter-webmvc-test | Utiliser spring-boot-starter-test |
+| 4 | pom.xml | spring-boot-starter-security-test | Utiliser spring-security-test |
+| 5 | User.java | Double point-virgule `;;` | Corriger à `;` |
+| 6 | SecurityConfig.java | CSRF bloque /auth/** | Désactiver CSRF complètement |
+| 7 | SecurityConfig.java | Frames bloquées pour H2 | Désactiver frameOptions |
+| 8 | application.properties | Header trop large | Ajouter max-http-request-header-size=48KB |
 
 ---
 
