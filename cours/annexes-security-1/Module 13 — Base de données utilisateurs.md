@@ -1,16 +1,16 @@
 # Module 13 — Ajouter une base de données pour les utilisateurs
 
-## Prerequis
+## Prérequis
 
-Tu as termine le Module 12 (projet avec JWT qui fonctionne).
+Tu as terminé le Module 12 (projet avec JWT qui fonctionne).
 
 ---
 
 ## Ce qu'on va faire
 
-Remplacer les utilisateurs en dur dans le code par une vraie base de donnees.
+Remplacer les utilisateurs en dur dans le code par une vraie base de données.
 
-| Avant (Module 12) | Apres (Module 13) |
+| Avant (Module 12) | Après (Module 13) |
 |-------------------|-------------------|
 | Users dans le code | Users dans la base H2 |
 | 2 users fixes | Users dynamiques |
@@ -28,8 +28,8 @@ Tu vas partir d'un projet **avec des erreurs volontaires** et tu dois les trouve
 
 | Dossier | Contenu |
 |---------|---------|
-| `exercice-security-demo-module-13/` | Projet avec des problemes a corriger |
-| `solution-security-demo-module-13/` | Solution complete et fonctionnelle |
+| `exercice-security-demo-module-13/` | Projet avec des problèmes à corriger |
+| `solution-security-demo-module-13/` | Solution complète et fonctionnelle |
 
 ### Comment faire l'exercice
 
@@ -43,7 +43,7 @@ mvn spring-boot:run
 
 3. **Observer les erreurs** dans la console
 
-4. **Trouver les problemes** dans les fichiers :
+4. **Trouver les problèmes** dans les fichiers :
    - `pom.xml`
    - `User.java`
    - `SecurityConfig.java`
@@ -51,9 +51,9 @@ mvn spring-boot:run
 
 5. **Corriger les erreurs** une par une
 
-6. **Tester** jusqu'a ce que l'application demarre
+6. **Tester** jusqu'à ce que l'application démarre
 
-7. **Verifier** que :
+7. **Vérifier** que :
    - `http://localhost:8081/public` fonctionne
    - `http://localhost:8081/h2-console` fonctionne
    - `POST /auth/login` fonctionne
@@ -63,14 +63,14 @@ mvn spring-boot:run
 <details>
 <summary>Indice 1 : pom.xml</summary>
 
-Verifie la version de Spring Boot. Est-ce qu'elle existe vraiment ?
+Vérifie la version de Spring Boot. Est-ce qu'elle existe vraiment ?
 
 </details>
 
 <details>
 <summary>Indice 2 : pom.xml</summary>
 
-Verifie les noms des dependances. Est-ce que `spring-boot-starter-webmvc` existe ?
+Vérifie les noms des dépendances. Est-ce que `spring-boot-starter-webmvc` existe ?
 
 </details>
 
@@ -84,7 +84,7 @@ Regarde attentivement les imports. Il y a une erreur de syntaxe.
 <details>
 <summary>Indice 4 : SecurityConfig.java</summary>
 
-CSRF est-il correctement configure pour permettre les requetes POST ?
+CSRF est-il correctement configuré pour permettre les requêtes POST ?
 
 </details>
 
@@ -97,13 +97,13 @@ Si tu as une erreur "Request header is too large", il manque une configuration.
 
 ### Solution
 
-Si tu es bloque, regarde le dossier `solution-security-demo-module-13/` pour voir la solution complete.
+Si tu es bloqué, regarde le dossier `solution-security-demo-module-13/` pour voir la solution complète.
 
-La section **"Problemes courants et solutions"** plus bas dans ce module explique chaque erreur en detail.
+La section **"Problèmes courants et solutions"** plus bas dans ce module explique chaque erreur en détail.
 
 ---
 
-## Etape 1 : Ajouter les dependances JPA + H2
+## Étape 1 : Ajouter les dépendances JPA + H2
 
 ### 1.1 Ouvrir pom.xml
 
@@ -626,7 +626,7 @@ SELECT * FROM USERS;
 Tu dois voir 2 lignes (admin et user).
 
 <details>
-<summary>Ca ne fonctionne pas ? 403 Forbidden ?</summary>
+<summary>Ça ne fonctionne pas ? 403 Forbidden ?</summary>
 
 Vérifie dans SecurityConfig.java que tu as bien :
 
@@ -702,14 +702,14 @@ Tu dois voir 3 lignes maintenant.
 
 ---
 
-## Problemes courants et solutions
+## Problèmes courants et solutions
 
-### Problemes de configuration pom.xml
+### Problèmes de configuration pom.xml
 
 <details>
 <summary>spring-boot-starter-parent version 4.x n'existe pas</summary>
 
-**Cause :** La version 4.x de Spring Boot n'existe pas encore. La derniere version stable est 3.x.
+**Cause :** La version 4.x de Spring Boot n'existe pas encore. La dernière version stable est 3.x.
 
 **Erreur :**
 ```
@@ -776,7 +776,7 @@ Utiliser `spring-boot-starter-test` :
 
 </details>
 
-### Problemes de syntaxe Java
+### Problèmes de syntaxe Java
 
 <details>
 <summary>Double point-virgule dans les imports</summary>
@@ -795,15 +795,15 @@ import jakarta.persistence.*;
 
 </details>
 
-### Problemes de securite (403 Forbidden)
+### Problèmes de sécurité (403 Forbidden)
 
 <details>
 <summary>403 sur /auth/login</summary>
 
-**Cause :** CSRF est active et bloque les requetes POST.
+**Cause :** CSRF est activé et bloque les requêtes POST.
 
 **Solution :**
-Dans SecurityConfig.java, desactiver CSRF :
+Dans SecurityConfig.java, désactiver CSRF :
 ```java
 http
     .csrf(csrf -> csrf.disable())
@@ -814,10 +814,10 @@ http
 <details>
 <summary>403 sur /h2-console</summary>
 
-**Cause :** SecurityConfig ne l'autorise pas ou les frames sont bloquees.
+**Cause :** SecurityConfig ne l'autorise pas ou les frames sont bloquées.
 
 **Solution :**
-Les 3 lignes suivantes sont necessaires :
+Les 3 lignes suivantes sont nécessaires :
 ```java
 http
     .csrf(csrf -> csrf.disable())
@@ -830,14 +830,14 @@ http
 
 </details>
 
-### Problemes de connexion H2 Console
+### Problèmes de connexion H2 Console
 
 <details>
 <summary>400 Bad Request sur /h2-console</summary>
 
 **Cause :** "Request header is too large" - le navigateur envoie trop de cookies.
 
-**Solution 1 :** Ouvrir en navigation privee (Ctrl+Shift+N)
+**Solution 1 :** Ouvrir en navigation privée (Ctrl+Shift+N)
 
 **Solution 2 :** Effacer les cookies pour localhost
 
@@ -855,21 +855,21 @@ server.max-http-request-header-size=48KB
 
 | Connexion H2 Console | Connexion API (JWT) |
 |---------------------|---------------------|
-| Pour acceder a la base de donnees | Pour acceder aux endpoints proteges |
+| Pour accéder à la base de données | Pour accéder aux endpoints protégés |
 | User: `sa`, Password: vide | POST /auth/login avec username/password |
 | Interface web H2 | Header Authorization: Bearer token |
 | Pas besoin de token JWT | Token obligatoire |
 
-La page de connexion H2 demande les identifiants de la **base de donnees**, pas de Spring Security.
+La page de connexion H2 demande les identifiants de la **base de données**, pas de Spring Security.
 
 </details>
 
-### Problemes de port
+### Problèmes de port
 
 <details>
 <summary>Port 8081 already in use</summary>
 
-**Cause :** Une autre instance de l'application tourne deja.
+**Cause :** Une autre instance de l'application tourne déjà.
 
 **Solution Windows :**
 ```powershell
@@ -891,44 +891,44 @@ kill -9 XXXX
 
 </details>
 
-### Problemes de base de donnees
+### Problèmes de base de données
 
 <details>
 <summary>Table USERS not found</summary>
 
-**Cause :** JPA n'a pas cree la table.
+**Cause :** JPA n'a pas créé la table.
 
 **Solution :**
-1. Verifier `spring.jpa.hibernate.ddl-auto=create-drop` dans application.properties
-2. Verifier que User.java a l'annotation `@Entity`
+1. Vérifier `spring.jpa.hibernate.ddl-auto=create-drop` dans application.properties
+2. Vérifier que User.java a l'annotation `@Entity`
 3. Relancer l'application
 
 </details>
 
 <details>
-<summary>Le nouveau user n'a pas de role</summary>
+<summary>Le nouveau user n'a pas de rôle</summary>
 
-**Cause :** Le role n'est pas defini dans /register.
+**Cause :** Le rôle n'est pas défini dans /register.
 
 **Solution :**
-Verifier dans AuthController.register() :
+Vérifier dans AuthController.register() :
 ```java
 user.setRole("USER");
 ```
 
 </details>
 
-### Tableau recapitulatif des corrections
+### Tableau récapitulatif des corrections
 
-| Fichier | Probleme | Correction |
+| Fichier | Problème | Correction |
 |---------|----------|------------|
-| pom.xml | Version 4.0.2 n'existe pas | Changer a 3.2.0 |
-| pom.xml | spring-boot-starter-webmvc | Changer a spring-boot-starter-web |
+| pom.xml | Version 4.0.2 n'existe pas | Changer à 3.2.0 |
+| pom.xml | spring-boot-starter-webmvc | Changer à spring-boot-starter-web |
 | pom.xml | spring-boot-starter-webmvc-test | Supprimer ou utiliser spring-boot-starter-test |
-| pom.xml | spring-boot-starter-security-test | Changer a spring-security-test |
-| User.java | Double point-virgule ;; | Corriger a ; |
-| SecurityConfig.java | CSRF bloque /auth/** | Desactiver CSRF |
-| SecurityConfig.java | Frames bloquees pour H2 | Desactiver frameOptions |
+| pom.xml | spring-boot-starter-security-test | Changer à spring-security-test |
+| User.java | Double point-virgule ;; | Corriger à ; |
+| SecurityConfig.java | CSRF bloque /auth/** | Désactiver CSRF |
+| SecurityConfig.java | Frames bloquées pour H2 | Désactiver frameOptions |
 | application.properties | Header trop large | Ajouter max-http-request-header-size=48KB |
 
 ---
@@ -1078,5 +1078,3 @@ Content-Type: application/json
 
 - Module 14 : Refresh token
 - Module 15 : Validation des données (@Valid)
-
-
