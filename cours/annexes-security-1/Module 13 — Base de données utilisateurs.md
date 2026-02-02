@@ -519,21 +519,53 @@ User créé : user / user123
 
 ### 9.2 Tester la console H2
 
-Ouvrir : `http://localhost:8080/h2-console`
+Ouvrir dans le navigateur : `http://localhost:8080/h2-console`
 
-Paramètres :
-- JDBC URL : `jdbc:h2:mem:testdb`
-- User : `sa`
-- Password : (vide)
+**IMPORTANT** : Pas besoin de token JWT ici. La console H2 est en `permitAll()`.
+
+La page de connexion H2 va s'afficher. Ce n'est **PAS** une connexion Spring Security, c'est une connexion à la **base de données H2** :
+
+| Champ | Valeur |
+|-------|--------|
+| JDBC URL | `jdbc:h2:mem:testdb` |
+| User Name | `sa` |
+| Password | (laisser vide) |
 
 Cliquer "Connect"
 
-Exécuter :
+Exécuter cette requête SQL :
 ```sql
 SELECT * FROM USERS;
 ```
 
 Tu dois voir 2 lignes (admin et user).
+
+<details>
+<summary>Ca ne fonctionne pas ? 403 Forbidden ?</summary>
+
+Vérifie dans SecurityConfig.java que tu as bien :
+
+```java
+.csrf(csrf -> csrf.disable())
+.headers(headers -> headers.frameOptions(frame -> frame.disable()))
+.requestMatchers("/h2-console/**").permitAll()
+```
+
+Les 3 lignes sont nécessaires pour que H2 Console fonctionne.
+
+</details>
+
+<details>
+<summary>Différence entre connexion H2 et connexion JWT</summary>
+
+| Connexion H2 Console | Connexion API (JWT) |
+|---------------------|---------------------|
+| Pour accéder à la base de données | Pour accéder aux endpoints protégés |
+| User: `sa`, Password: vide | POST /auth/login avec username/password |
+| Interface web H2 | Header Authorization: Bearer token |
+| Pas besoin de token | Token obligatoire |
+
+</details>
 
 ### 9.3 Tester l'inscription
 
@@ -773,4 +805,5 @@ Content-Type: application/json
 
 - Module 14 : Refresh token
 - Module 15 : Validation des données (@Valid)
+
 
