@@ -1,16 +1,16 @@
 # Module 13 — Ajouter une base de données pour les utilisateurs
 
-## Prérequis
+## Prerequis
 
-Tu as terminé le Module 12 (projet avec JWT qui fonctionne).
+Tu as termine le Module 12 (projet avec JWT qui fonctionne).
 
 ---
 
 ## Ce qu'on va faire
 
-Remplacer les utilisateurs en dur dans le code par une vraie base de données.
+Remplacer les utilisateurs en dur dans le code par une vraie base de donnees.
 
-| Avant (Module 12) | Après (Module 13) |
+| Avant (Module 12) | Apres (Module 13) |
 |-------------------|-------------------|
 | Users dans le code | Users dans la base H2 |
 | 2 users fixes | Users dynamiques |
@@ -18,7 +18,92 @@ Remplacer les utilisateurs en dur dans le code par une vraie base de données.
 
 ---
 
-## Étape 1 : Ajouter les dépendances JPA + H2
+## Exercice pratique : Trouver et corriger les erreurs
+
+### Objectif
+
+Tu vas partir d'un projet **avec des erreurs volontaires** et tu dois les trouver et les corriger.
+
+### Les deux dossiers
+
+| Dossier | Contenu |
+|---------|---------|
+| `exercice-security-demo-module-13/` | Projet avec des problemes a corriger |
+| `solution-security-demo-module-13/` | Solution complete et fonctionnelle |
+
+### Comment faire l'exercice
+
+1. **Ouvrir le dossier** `exercice-security-demo-module-13/`
+
+2. **Essayer de lancer** :
+```bash
+cd exercice-security-demo-module-13
+mvn spring-boot:run
+```
+
+3. **Observer les erreurs** dans la console
+
+4. **Trouver les problemes** dans les fichiers :
+   - `pom.xml`
+   - `User.java`
+   - `SecurityConfig.java`
+   - `application.properties`
+
+5. **Corriger les erreurs** une par une
+
+6. **Tester** jusqu'a ce que l'application demarre
+
+7. **Verifier** que :
+   - `http://localhost:8081/public` fonctionne
+   - `http://localhost:8081/h2-console` fonctionne
+   - `POST /auth/login` fonctionne
+
+### Indices
+
+<details>
+<summary>Indice 1 : pom.xml</summary>
+
+Verifie la version de Spring Boot. Est-ce qu'elle existe vraiment ?
+
+</details>
+
+<details>
+<summary>Indice 2 : pom.xml</summary>
+
+Verifie les noms des dependances. Est-ce que `spring-boot-starter-webmvc` existe ?
+
+</details>
+
+<details>
+<summary>Indice 3 : User.java</summary>
+
+Regarde attentivement les imports. Il y a une erreur de syntaxe.
+
+</details>
+
+<details>
+<summary>Indice 4 : SecurityConfig.java</summary>
+
+CSRF est-il correctement configure pour permettre les requetes POST ?
+
+</details>
+
+<details>
+<summary>Indice 5 : application.properties</summary>
+
+Si tu as une erreur "Request header is too large", il manque une configuration.
+
+</details>
+
+### Solution
+
+Si tu es bloque, regarde le dossier `solution-security-demo-module-13/` pour voir la solution complete.
+
+La section **"Problemes courants et solutions"** plus bas dans ce module explique chaque erreur en detail.
+
+---
+
+## Etape 1 : Ajouter les dependances JPA + H2
 
 ### 1.1 Ouvrir pom.xml
 
