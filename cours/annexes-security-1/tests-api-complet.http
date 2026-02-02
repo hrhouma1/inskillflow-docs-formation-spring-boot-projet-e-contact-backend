@@ -1,0 +1,359 @@
+### =============================================
+### TESTS API SPRING SECURITY - FICHIER COMPLET
+### Modules 11 à 18
+### =============================================
+
+### -----------------------------------------
+### VARIABLES (à modifier après chaque login)
+### -----------------------------------------
+@baseUrl = http://localhost:8080
+@accessToken = REMPLACER_PAR_ACCESS_TOKEN
+@refreshToken = REMPLACER_PAR_REFRESH_TOKEN
+
+
+### =========================================
+### MODULE 11 - ENDPOINTS BASIQUES
+### =========================================
+
+### Test 1.1 : Endpoint public (sans token)
+### Résultat attendu : 200 OK
+GET {{baseUrl}}/public
+
+### Test 1.2 : Endpoint privé (sans token)
+### Résultat attendu : 403 Forbidden
+GET {{baseUrl}}/private
+
+### Test 1.3 : Endpoint admin (sans token)
+### Résultat attendu : 403 Forbidden
+GET {{baseUrl}}/admin
+
+
+### =========================================
+### MODULE 12 - AUTHENTIFICATION JWT
+### =========================================
+
+### Test 2.1 : Login admin
+### Copier accessToken et refreshToken dans les variables
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin123"
+}
+
+### Test 2.2 : Login user
+### Copier accessToken et refreshToken
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "user",
+    "password": "user123"
+}
+
+### Test 2.3 : Login avec mauvais password
+### Résultat attendu : 401 Unauthorized
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "mauvais"
+}
+
+### Test 2.4 : Login user inexistant
+### Résultat attendu : 404 Not Found
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "nexistepas",
+    "password": "test123"
+}
+
+
+### =========================================
+### MODULE 13 - BASE DE DONNÉES
+### =========================================
+
+### Test 3.1 : Créer un nouveau user
+### Résultat attendu : 200 OK
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "nouveauuser",
+    "password": "password123"
+}
+
+### Test 3.2 : Créer le même user (doublon)
+### Résultat attendu : 409 Conflict
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "nouveauuser",
+    "password": "password123"
+}
+
+### Test 3.3 : Login avec le nouveau user
+### Résultat attendu : 200 OK + tokens
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "nouveauuser",
+    "password": "password123"
+}
+
+
+### =========================================
+### MODULE 14 - REFRESH TOKEN
+### =========================================
+
+### Test 4.1 : Refresh token valide
+### Résultat attendu : 200 OK + nouveau accessToken
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "{{refreshToken}}"
+}
+
+### Test 4.2 : Refresh avec access token (erreur)
+### Résultat attendu : 401 Unauthorized
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "{{accessToken}}"
+}
+
+### Test 4.3 : Refresh token invalide
+### Résultat attendu : 401 Unauthorized
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "token.invalide.ici"
+}
+
+### Test 4.4 : Refresh token manquant
+### Résultat attendu : 401 Unauthorized
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": ""
+}
+
+
+### =========================================
+### MODULE 15 - VALIDATION
+### =========================================
+
+### Test 5.1 : Username vide
+### Résultat attendu : 400 + erreur validation
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "",
+    "password": "password123"
+}
+
+### Test 5.2 : Password trop court
+### Résultat attendu : 400 + erreur validation
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "testuser",
+    "password": "123"
+}
+
+### Test 5.3 : Username trop court
+### Résultat attendu : 400 + erreur validation
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "ab",
+    "password": "password123"
+}
+
+### Test 5.4 : Les deux invalides
+### Résultat attendu : 400 + 2 erreurs
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "",
+    "password": ""
+}
+
+### Test 5.5 : Login avec username vide
+### Résultat attendu : 400 + erreur validation
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "",
+    "password": "password123"
+}
+
+
+### =========================================
+### MODULE 16 - GESTION DES ERREURS
+### =========================================
+
+### Test 6.1 : 404 - User non trouvé
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "userquinexistepas",
+    "password": "test123"
+}
+
+### Test 6.2 : 401 - Mauvais password
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "mauvaispassword"
+}
+
+### Test 6.3 : 409 - Username déjà pris
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "test123456"
+}
+
+
+### =========================================
+### MODULE 17 - ROLES ET PERMISSIONS
+### =========================================
+
+### Test 7.1 : /private avec token
+### Résultat attendu : 200 OK
+GET {{baseUrl}}/private
+Authorization: Bearer {{accessToken}}
+
+### Test 7.2 : /admin avec token admin
+### Résultat attendu : 200 OK (si token admin)
+GET {{baseUrl}}/admin
+Authorization: Bearer {{accessToken}}
+
+### Test 7.3 : /user avec token
+### Résultat attendu : 200 OK (si token user)
+GET {{baseUrl}}/user
+Authorization: Bearer {{accessToken}}
+
+### Test 7.4 : /admin-or-user avec token
+### Résultat attendu : 200 OK
+GET {{baseUrl}}/admin-or-user
+Authorization: Bearer {{accessToken}}
+
+### Test 7.5 : /profile/admin avec token admin
+### Résultat attendu : 200 OK
+GET {{baseUrl}}/profile/admin
+Authorization: Bearer {{accessToken}}
+
+### Test 7.6 : /profile/user avec token admin
+### Résultat attendu : 200 OK (admin peut tout voir)
+GET {{baseUrl}}/profile/user
+Authorization: Bearer {{accessToken}}
+
+
+### =========================================
+### MODULE 18 - LOGOUT
+### =========================================
+
+### Test 8.1 : Accès avant logout
+### Résultat attendu : 200 OK
+GET {{baseUrl}}/private
+Authorization: Bearer {{accessToken}}
+
+### Test 8.2 : Logout (juste access token)
+### Résultat attendu : 200 OK + message
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+### Test 8.3 : Accès après logout
+### Résultat attendu : 403 Forbidden
+GET {{baseUrl}}/private
+Authorization: Bearer {{accessToken}}
+
+### Test 8.4 : Refresh après logout
+### Résultat attendu : 401 Unauthorized (si refresh blacklisté)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "{{refreshToken}}"
+}
+
+
+### =========================================
+### SCÉNARIO COMPLET
+### =========================================
+
+### Scénario 1 : Nouveau user complet
+### Étape 1 - Inscription
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "testcomplet",
+    "password": "testcomplet123"
+}
+
+### Scénario 1 : Étape 2 - Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "testcomplet",
+    "password": "testcomplet123"
+}
+
+### Scénario 1 : Étape 3 - Accès privé (mettre le token)
+GET {{baseUrl}}/private
+Authorization: Bearer METTRE_LE_TOKEN_ICI
+
+### Scénario 1 : Étape 4 - Refresh (mettre le refresh token)
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "METTRE_LE_REFRESH_TOKEN_ICI"
+}
+
+### Scénario 1 : Étape 5 - Logout (mettre le nouveau access token)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer METTRE_LE_NOUVEAU_ACCESS_TOKEN_ICI
+
+### Scénario 1 : Étape 6 - Vérifier que l'accès est refusé
+GET {{baseUrl}}/private
+Authorization: Bearer METTRE_LE_TOKEN_BLACKLISTE_ICI
+
+
+### =========================================
+### CONSOLE H2 (pour vérifier la base)
+### =========================================
+
+### Ouvrir dans le navigateur : http://localhost:8080/h2-console
+### JDBC URL : jdbc:h2:mem:testdb
+### User : sa
+### Password : (vide)
+###
+### Requêtes SQL utiles :
+### SELECT * FROM USERS;
+### SELECT COUNT(*) FROM USERS;
+
