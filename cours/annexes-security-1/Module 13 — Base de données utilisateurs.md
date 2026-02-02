@@ -617,46 +617,234 @@ Tu dois voir 3 lignes maintenant.
 
 ---
 
-## Problèmes courants
+## Problemes courants et solutions
+
+### Problemes de configuration pom.xml
 
 <details>
-<summary>Table USERS not found</summary>
+<summary>spring-boot-starter-parent version 4.x n'existe pas</summary>
 
-**Cause :** JPA n'a pas créé la table
+**Cause :** La version 4.x de Spring Boot n'existe pas encore. La derniere version stable est 3.x.
+
+**Erreur :**
+```
+Could not find artifact org.springframework.boot:spring-boot-starter-parent:pom:4.0.2
+```
 
 **Solution :**
-1. Vérifier `spring.jpa.hibernate.ddl-auto=create-drop`
-2. Vérifier que User.java a `@Entity`
-3. Relancer l'application
+Dans pom.xml, changer :
+```xml
+<parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.2.0</version>
+</parent>
+```
+
+</details>
+
+<details>
+<summary>spring-boot-starter-webmvc n'existe pas</summary>
+
+**Cause :** L'artifact correct est `spring-boot-starter-web`, pas `spring-boot-starter-webmvc`.
+
+**Solution :**
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+```
+
+</details>
+
+<details>
+<summary>spring-boot-starter-webmvc-test n'existe pas</summary>
+
+**Cause :** Cet artifact n'existe pas.
+
+**Solution :**
+Utiliser `spring-boot-starter-test` :
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+</details>
+
+<details>
+<summary>spring-boot-starter-security-test n'existe pas</summary>
+
+**Cause :** L'artifact correct est `spring-security-test`.
+
+**Solution :**
+```xml
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-test</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+</details>
+
+### Problemes de syntaxe Java
+
+<details>
+<summary>Double point-virgule dans les imports</summary>
+
+**Cause :** Erreur de frappe dans le fichier Java.
+
+**Erreur :**
+```java
+import jakarta.persistence.*;;
+```
+
+**Solution :**
+```java
+import jakarta.persistence.*;
+```
+
+</details>
+
+### Problemes de securite (403 Forbidden)
+
+<details>
+<summary>403 sur /auth/login</summary>
+
+**Cause :** CSRF est active et bloque les requetes POST.
+
+**Solution :**
+Dans SecurityConfig.java, desactiver CSRF :
+```java
+http
+    .csrf(csrf -> csrf.disable())
+```
 
 </details>
 
 <details>
 <summary>403 sur /h2-console</summary>
 
-**Cause :** SecurityConfig ne l'autorise pas
+**Cause :** SecurityConfig ne l'autorise pas ou les frames sont bloquees.
 
 **Solution :**
-Vérifier que tu as :
+Les 3 lignes suivantes sont necessaires :
 ```java
-.requestMatchers("/h2-console/**").permitAll()
-.headers(headers -> headers.frameOptions(frame -> frame.disable()))
+http
+    .csrf(csrf -> csrf.disable())
+    .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+    .authorizeHttpRequests(auth -> auth
+        .requestMatchers("/h2-console/**").permitAll()
+        // ...
+    )
+```
+
+</details>
+
+### Problemes de connexion H2 Console
+
+<details>
+<summary>400 Bad Request sur /h2-console</summary>
+
+**Cause :** "Request header is too large" - le navigateur envoie trop de cookies.
+
+**Solution 1 :** Ouvrir en navigation privee (Ctrl+Shift+N)
+
+**Solution 2 :** Effacer les cookies pour localhost
+
+**Solution 3 :** Ajouter dans application.properties :
+```properties
+server.max-http-request-header-size=48KB
 ```
 
 </details>
 
 <details>
-<summary>Le nouveau user n'a pas de rôle</summary>
+<summary>Confusion entre connexion H2 et connexion JWT</summary>
 
-**Cause :** Le rôle n'est pas mis dans /register
+**Explication :**
+
+| Connexion H2 Console | Connexion API (JWT) |
+|---------------------|---------------------|
+| Pour acceder a la base de donnees | Pour acceder aux endpoints proteges |
+| User: `sa`, Password: vide | POST /auth/login avec username/password |
+| Interface web H2 | Header Authorization: Bearer token |
+| Pas besoin de token JWT | Token obligatoire |
+
+La page de connexion H2 demande les identifiants de la **base de donnees**, pas de Spring Security.
+
+</details>
+
+### Problemes de port
+
+<details>
+<summary>Port 8081 already in use</summary>
+
+**Cause :** Une autre instance de l'application tourne deja.
+
+**Solution Windows :**
+```powershell
+# Trouver le processus
+netstat -ano | findstr :8081
+
+# Tuer le processus (remplacer XXXX par le PID)
+taskkill /PID XXXX /F
+```
+
+**Solution Linux/Mac :**
+```bash
+# Trouver le processus
+lsof -i :8081
+
+# Tuer le processus (remplacer XXXX par le PID)
+kill -9 XXXX
+```
+
+</details>
+
+### Problemes de base de donnees
+
+<details>
+<summary>Table USERS not found</summary>
+
+**Cause :** JPA n'a pas cree la table.
 
 **Solution :**
-Vérifier dans AuthController.register() :
+1. Verifier `spring.jpa.hibernate.ddl-auto=create-drop` dans application.properties
+2. Verifier que User.java a l'annotation `@Entity`
+3. Relancer l'application
+
+</details>
+
+<details>
+<summary>Le nouveau user n'a pas de role</summary>
+
+**Cause :** Le role n'est pas defini dans /register.
+
+**Solution :**
+Verifier dans AuthController.register() :
 ```java
 user.setRole("USER");
 ```
 
 </details>
+
+### Tableau recapitulatif des corrections
+
+| Fichier | Probleme | Correction |
+|---------|----------|------------|
+| pom.xml | Version 4.0.2 n'existe pas | Changer a 3.2.0 |
+| pom.xml | spring-boot-starter-webmvc | Changer a spring-boot-starter-web |
+| pom.xml | spring-boot-starter-webmvc-test | Supprimer ou utiliser spring-boot-starter-test |
+| pom.xml | spring-boot-starter-security-test | Changer a spring-security-test |
+| User.java | Double point-virgule ;; | Corriger a ; |
+| SecurityConfig.java | CSRF bloque /auth/** | Desactiver CSRF |
+| SecurityConfig.java | Frames bloquees pour H2 | Desactiver frameOptions |
+| application.properties | Header trop large | Ajouter max-http-request-header-size=48KB |
 
 ---
 
