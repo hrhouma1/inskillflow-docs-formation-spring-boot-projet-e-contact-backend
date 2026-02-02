@@ -1,0 +1,40 @@
+
+@baseUrl = http://localhost:8081
+@userToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwiaWF0IjoxNzcwMDQ1ODMwLCJleHAiOjE3NzAwNDk0MzB9.b5cc_V2zEAryD-CEhwKmEELNAwfzWlvbBNu8aX7irf8
+@adminToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc3MDA0NTg2OCwiZXhwIjoxNzcwMDQ5NDY4fQ.uySyHrDveUiQ3POSgy4CL_2NltNYEt_BlRkwVB92u3c
+
+### Acceder à la page publique sans token
+GET {{baseUrl}}/public
+
+### Acceder à la page private sans token (ne devrait pas marcher)
+GET {{baseUrl}}/private
+
+### Login user
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "user",
+    "password": "user123"
+}
+
+### Acceder à la page private
+GET {{baseUrl}}/private
+Authorization: Bearer {{userToken}}
+
+### Acceder à la page admin en étant un user (ne devrait pas marcher)
+GET {{baseUrl}}/admin
+Authorization: Bearer {{userToken}}
+
+### Login admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "admin123"
+}
+
+### Acceder à la page admin en étant admin
+GET {{baseUrl}}/admin
+Authorization: Bearer {{adminToken}}
