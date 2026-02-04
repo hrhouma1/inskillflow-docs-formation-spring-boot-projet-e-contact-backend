@@ -1,6 +1,6 @@
 # Exercice Pratique — Projet Minimaliste Spring Security
 
-## 🎯 Objectif
+## Objectif
 
 Créer une API REST minimaliste avec Spring Security pour comprendre les bases de l'authentification et de l'autorisation.
 
@@ -8,7 +8,7 @@ Créer une API REST minimaliste avec Spring Security pour comprendre les bases d
 
 ---
 
-## 📋 Cahier des charges
+## Cahier des charges
 
 ### Contexte
 
@@ -19,7 +19,7 @@ Tu dois créer une API pour une **bibliothèque** avec 3 types d'accès :
 
 ---
 
-## 🏗️ Structure du projet
+## Structure du projet
 
 ```
 src/main/java/com/exemple/biblio/
@@ -47,7 +47,7 @@ src/main/java/com/exemple/biblio/
 
 ---
 
-## 📝 Étape 1 : Créer le projet Spring Boot
+## Étape 1 : Créer le projet Spring Boot
 
 ### 1.1 Dépendances (pom.xml)
 
@@ -123,7 +123,7 @@ jwt:
 
 ---
 
-## 📝 Étape 2 : Créer les entités
+## Étape 2 : Créer les entités
 
 ### 2.1 User.java
 
@@ -225,7 +225,7 @@ public class Book {
 
 ---
 
-## 📝 Étape 3 : Créer les endpoints
+## Étape 3 : Créer les endpoints
 
 ### Tableau des endpoints à implémenter
 
@@ -242,7 +242,7 @@ public class Book {
 
 ---
 
-## 📝 Étape 4 : Configurer Spring Security
+## Étape 4 : Configurer Spring Security
 
 ### 4.1 SecurityConfig.java (À COMPLÉTER)
 
@@ -347,7 +347,7 @@ public class SecurityConfig {
 
 ---
 
-## 📝 Étape 5 : Implémenter JwtService
+## Étape 5 : Implémenter JwtService
 
 ### 5.1 JwtService.java (À COMPLÉTER)
 
@@ -464,7 +464,7 @@ public class JwtService {
 
 ---
 
-## 📝 Étape 6 : Implémenter JwtAuthFilter
+## Étape 6 : Implémenter JwtAuthFilter
 
 ### 6.1 JwtAuthFilter.java (À COMPLÉTER)
 
@@ -550,7 +550,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 ---
 
-## 📝 Étape 7 : Tests avec Postman/cURL
+## Étape 7 : Tests avec Postman/cURL
 
 ### 7.1 Créer un compte
 
@@ -611,7 +611,7 @@ curl -X POST http://localhost:8080/api/books/1/emprunter \
 
 ---
 
-## ✅ Critères de validation
+## Critères de validation
 
 | # | Critère | Points |
 |---|---------|--------|
@@ -628,7 +628,7 @@ curl -X POST http://localhost:8080/api/books/1/emprunter \
 
 ---
 
-## 🎁 Bonus (optionnel)
+## Bonus (optionnel)
 
 1. **+10 points** : Ajouter un endpoint GET /api/users/me qui retourne l'utilisateur connecté
 2. **+10 points** : Empêcher un USER d'emprunter plus de 3 livres
@@ -637,7 +637,7 @@ curl -X POST http://localhost:8080/api/books/1/emprunter \
 
 ---
 
-## 📚 Ressources
+## Ressources
 
 - [Documentation Spring Security](https://docs.spring.io/spring-security/reference/)
 - [JWT.io](https://jwt.io/) - Pour décoder et vérifier vos tokens
