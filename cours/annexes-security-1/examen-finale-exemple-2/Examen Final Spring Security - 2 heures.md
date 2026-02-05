@@ -8,8 +8,7 @@
 - **Durée totale** : 2 heures
 - **Partie 1 (Quiz)** : 30 minutes - 10 questions
 - **Partie 2 (Pratique)** : 90 minutes - 3 exercices de code
-- **Documents autorisés** : Aucun
-- **Calculatrice** : Non autorisée
+
 
 **Barème :**
 - Partie 1 : 20 points (2 points par question)
